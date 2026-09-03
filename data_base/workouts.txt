@@ -1,0 +1,13 @@
+CLASS_ID | DATE | DATA_JSON
+2 | 11/02/2026 | [{"exercise":"کلاغ پر","sets":"5","reps":"5"}]
+2 | 02/06/2026 | [{"exercise":"test1","sets":"10","reps":"10"}]
+2 | 03/06/2026 | []
+2 | 22/06/2026 | [{"exercise":"test","sets":"1","reps":"1"}]
+2 | 22/06/2026 | [{"exercise":"test 2","sets":"2","reps":"2"}]
+2 | 22/06/2026 | [{"sets":"3","exercise":"Test Coach Send","reps":"12"}]
+2 | 22/06/2026 | {"exercises":[{"sets":"2","exercise":"Coach message test","reps":"8"}],"message":"Workout assigned by Coach Hamid","assignedAt":"22/06/2026 19:16:33"}
+2 | 22/06/2026 | {"exercises":[{"exercise":"1","sets":"1","reps":"1"},{"exercise":"2","sets":"2","reps":"2"},{"exercise":"3","sets":"3","reps":"3"}],"message":"Workout assigned by Coach Hamid","assignedAt":"22/06/2026 19:22:22"}
+1 | 24/06/2026 | {"exercises":[{"exercise":"Teredmille","sets":"1","reps":"30"}],"message":"Workout assigned by Coach Hamid","assignedAt":"24/06/2026 16:43:26"}
+1 | 25/06/2026 | {"exercises":[{"exercise":"Test","sets":"2","reps":"2"}],"message":"salam in yek payame test ast","assignedAt":"25/06/2026 19:26:33"}
+1 | 03/07/2026 | {"exercises":[{"exercise":"t1","sets":"3","reps":"4"}],"message":"Workout assigned by Coach Hamid","assignedAt":"03/07/2026 19:22:21"}
+1 | 03/07/2026 | {"exercises":[{"exercise":"bache haye khobi bashid","sets":"1","reps":"1"}],"message":"Workout assigned by Coach Hamid","assignedAt":"03/07/2026 19:34:00"}

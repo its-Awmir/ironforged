@@ -1,0 +1,30 @@
+{"id":"EQ-001","name":"Treadmill X5","status":"bg-ok","notes":"Main cardio area","date":"2026-02-23"}
+{"id":"EQ-002","name":"Bench Press","status":"bg-ok","notes":"Standard size","date":"2026-02-23"}
+{"id":"EQ-003","name":"Dumbbell Set","status":"bg-repair","notes":"Missing 10kg pair","date":"2026-02-23"}
+{"id":"EQ-004","name":"Spin Bike","status":"bg-ok","notes":"Near the window","date":"2026-02-23"}
+{"id":"EQ-005","name":"Leg Press","status":"bg-repair","notes":"Needs oiling","date":"2026-02-23"}
+{"id":"EQ-006","name":"Air Conditioner","status":"bg-ok","notes":"Filter cleaned","date":"2026-02-23"}
+{"id":"EQ-007","name":"Cable Cross","status":"bg-ok","notes":"Cable replaced","date":"2026-02-23"}
+{"id":"EQ-008","name":"Sauna Heater","status":"bg-ok","notes":"Check thermostat","date":"2026-02-23"}
+{"id":"EQ-009","name":"Elliptical E2","status":"bg-ok","notes":"Cardio zone B","date":"2026-02-23"}
+{"id":"EQ-010","name":"Smith Machine","status":"bg-ok","notes":"Strength area","date":"2026-02-23"}
+{"id":"EQ-011","name":"Lat Pulldown","status":"bg-ok","notes":"Back workout station","date":"2026-02-23"}
+{"id":"EQ-012","name":"Leg Extension","status":"bg-repair","notes":"Broken cable","date":"2026-02-23"}
+{"id":"EQ-013","name":"Chest Fly Machine","status":"bg-ok","notes":"Pec deck","date":"2026-02-23"}
+{"id":"EQ-014","name":"Shoulder Press","status":"bg-ok","notes":"Deltoid station","date":"2026-02-23"}
+{"id":"EQ-015","name":"Rowing Machine","status":"bg-ok","notes":"High intensity area","date":"2026-02-23"}
+{"id":"EQ-016","name":"Kettlebell Set","status":"bg-ok","notes":"Crossfit zone","date":"2026-02-23"}
+{"id":"EQ-017","name":"Incline Bench","status":"bg-ok","notes":"Upper chest focus","date":"2026-02-23"}
+{"id":"EQ-018","name":"Hack Squat","status":"bg-repair","notes":"Platform loose","date":"2026-02-23"}
+{"id":"EQ-019","name":"Barbell Set","status":"bg-ok","notes":"Olympic weights","date":"2026-02-23"}
+{"id":"EQ-020","name":"Preacher Curl","status":"bg-ok","notes":"Bicep isolation","date":"2026-02-23"}
+{"id":"EQ-021","name":"Tricep Pushdown","status":"bg-ok","notes":"Cable attachment","date":"2026-02-23"}
+{"id":"EQ-022","name":"Punching Bag","status":"bg-repair","notes":"Requires re-hanging","date":"2026-02-23"}
+{"id":"EQ-023","name":"Yoga Mats","status":"bg-repair","notes":"Stretching area","date":"2026-02-23"}
+{"id":"EQ-024","name":"Smart Lockers","status":"bg-repair","notes":"Locker room A","date":"2026-02-23"}
+{"id":"EQ-025","name":"Sound System","status":"bg-ok","notes":"Main hall speakers","date":"2026-02-23"}
+{"id":"EQ-026","name":"Water Fountain","status":"bg-ok","notes":"Filter needs change","date":"2026-02-23"}
+{"id":"EQ-027","name":"Medicine Balls","status":"bg-ok","notes":"Functional training","date":"2026-02-23"}
+{"id":"EQ-029","name":"Abdominal Bench","status":"bg-ok","notes":"Core station","date":"2026-02-23"}
+{"id":"EQ-030","name":"Steam Room","status":"bg-repair","notes":"High pressure leak","date":"2026-02-23"}
+{"id":"EQ-1782296114496","name":"A/C","status":"bg-ok","notes":"","date":"2026-06-24"}

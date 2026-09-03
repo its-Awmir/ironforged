@@ -1,0 +1,72 @@
+[02/06/2026 23:09:14] [ROLE_UPDATE] - User ID 2 role successfully updated to: Admin
+[02/06/2026 23:09:27] [ROLE_UPDATE] - User ID 2 role successfully updated to: Coach
+[02/06/2026 23:15:04] [ROLE_UPDATE] - User ID 3 role successfully updated to: Admin
+[02/06/2026 23:15:24] [ROLE_UPDATE] - User ID 3 role successfully updated to: Member
+[02/06/2026 23:16:40] [CLASS_MGMT] - Class ID: 8 was successfully deleted by Admin
+[02/06/2026 23:18:39] [EQUIPMENT] - Equipment updated. ID: EQ-004 | Name: "Unchanged" | New Status: [bg-ok]
+[02/06/2026 23:18:50] [EQUIPMENT] - Equipment updated. ID: EQ-001 | Name: "Unchanged" | New Status: [bg-repair]
+[02/06/2026 23:19:05] [EQUIPMENT] - Equipment updated. ID: EQ-001 | Name: "Unchanged" | New Status: [bg-ok]
+[02/06/2026 23:21:50] [LOGIN] - User logged in: Hamid | Role: Coach | ID: 2
+[02/06/2026 23:21:52] [LOGIN] - User logged in: Hamid | Role: Coach | ID: 2
+[02/06/2026 23:21:53] [LOGIN] - User logged in: Hamid | Role: Coach | ID: 2
+[02/06/2026 23:21:55] [LOGIN] - User logged in: Hamid | Role: Coach | ID: 2
+[02/06/2026 23:21:56] [LOGIN] - User logged in: Hamid | Role: Coach | ID: 2
+[02/06/2026 23:21:56] [LOGIN] - User logged in: Hamid | Role: Coach | ID: 2
+[02/06/2026 23:21:57] [LOGIN] - User logged in: Hamid | Role: Coach | ID: 2
+[02/06/2026 23:22:18] [LOGIN] - User logged in: Hamid | Role: Coach | ID: 2
+[02/06/2026 23:22:22] [LOGIN] - User logged in: Hamid | Role: Coach | ID: 2
+[02/06/2026 23:22:23] [LOGIN] - User logged in: Hamid | Role: Coach | ID: 2
+[02/06/2026 23:22:23] [LOGIN] - User logged in: Hamid | Role: Coach | ID: 2
+[02/06/2026 23:22:24] [LOGIN] - User logged in: Hamid | Role: Coach | ID: 2
+[02/06/2026 23:33:34] [LOGIN] - User logged in: Hamid | Role: Coach | ID: 2
+[02/06/2026 23:33:35] [LOGIN] - User logged in: Hamid | Role: Coach | ID: 2
+[02/06/2026 23:33:42] [LOGIN] - User logged in: Hamid | Role: Coach | ID: 2
+[02/06/2026 23:34:02] [LOGIN] - User logged in: Amir | Role: Admin | ID: 1
+[02/06/2026 23:37:57] [LOGIN] - User logged in: Hamid | Role: Coach | ID: 2
+[02/06/2026 23:38:25] [LOGIN] - User logged in: Hamid | Role: Coach | ID: 2
+[02/06/2026 23:40:29] [LOGIN] - User logged in: Hamid | Role: Coach | ID: 2
+[02/06/2026 23:44:03] [LOGIN] - User logged in: Hamid | Role: Coach | ID: 2
+[02/06/2026 23:46:47] [LOGIN] - User logged in: Hamid | Role: Coach | ID: 2
+[02/06/2026 23:46:52] [LOGIN] - User logged in: Hamid | Role: Coach | ID: 2
+[02/06/2026 23:46:52] [LOGIN] - User logged in: Hamid | Role: Coach | ID: 2
+[02/06/2026 23:46:53] [LOGIN] - User logged in: Hamid | Role: Coach | ID: 2
+[02/06/2026 23:47:46] [LOGIN] - User logged in: Hamid | Role: Coach | ID: 2
+[02/06/2026 23:48:57] [LOGIN] - User logged in: Hamid | Role: Coach | ID: 2
+[02/06/2026 23:49:18] [LOGIN] - User logged in: Hamid | Role: Coach | ID: 2
+[02/06/2026 23:51:30] [LOGIN] - User logged in: Hamid | Role: Coach | ID: 2
+[02/06/2026 23:51:50] [LOGIN] - User logged in: Hamid | Role: Coach | ID: 2
+[02/06/2026 23:52:10] [LOGIN] - User logged in: Hamid | Role: Coach | ID: 2
+[02/06/2026 23:53:16] [LOGIN] - User logged in: Hamid | Role: Coach | ID: 2
+[02/06/2026 23:53:22] [LOGIN] - User logged in: Hamid | Role: Coach | ID: 2
+[02/06/2026 23:53:23] [LOGIN] - User logged in: Hamid | Role: Coach | ID: 2
+[03/06/2026 00:01:03] [LOGIN] - User logged in: Hamid | Role: Coach | ID: 2
+[03/06/2026 00:09:51] [REGISTER] - New user registered: Mohsen (Mohsen@yahoo.com) | ID: 11 as Member
+[03/06/2026 00:17:30] [CLASS_MGMT] - Class ID: 8 was successfully deleted by Admin
+[03/06/2026 00:18:40] [ROLE_UPDATE] - User ID 3 role successfully updated to: Admin
+[03/06/2026 00:18:45] [ROLE_UPDATE] - User ID 3 role successfully updated to: Member
+[03/06/2026 00:20:15] [EQUIPMENT] - Equipment updated. ID: EQ-017 | Name: "Unchanged" | New Status: [bg-repair]
+[03/06/2026 00:20:21] [EQUIPMENT] - Equipment updated. ID: EQ-017 | Name: "Unchanged" | New Status: [bg-ok]
+[05/06/2026 21:30:51] [REGISTER] - New user registered: shaghayegh (shaghayeghshabannejad1995@gmail.com) | ID: 12 as Member
+[05/06/2026 21:39:43] [EQUIPMENT] - Equipment updated. ID: EQ-026 | Name: "Unchanged" | New Status: [bg-ok]
+[22/06/2026 17:46:28] [EQUIPMENT] - Equipment updated. ID: EQ-003 | Name: "Unchanged" | New Status: [bg-repair]
+[22/06/2026 17:46:30] [EQUIPMENT] - Equipment updated. ID: EQ-003 | Name: "Unchanged" | New Status: [bg-ok]
+[22/06/2026 17:46:31] [EQUIPMENT] - Equipment updated. ID: EQ-003 | Name: "Unchanged" | New Status: [bg-repair]
+[22/06/2026 19:42:19] [CLASS_MGMT] - Class ID: 8 was successfully deleted by Admin
+[22/06/2026 19:42:36] [EQUIPMENT] - Equipment updated. ID: EQ-030 | Name: "Unchanged" | New Status: [bg-ok]
+[22/06/2026 19:42:38] [EQUIPMENT] - Equipment updated. ID: EQ-023 | Name: "Unchanged" | New Status: [bg-repair]
+[22/06/2026 19:42:40] [EQUIPMENT] - Equipment updated. ID: EQ-024 | Name: "Unchanged" | New Status: [bg-repair]
+[24/06/2026 12:51:20] [CLASS_MGMT] - Class ID: 6 was successfully deleted by Admin
+[24/06/2026 13:17:27] [CLASS_MGMT] - Class ID: 7 was successfully deleted by Admin
+[24/06/2026 13:17:29] [CLASS_MGMT] - Class ID: 3 was successfully deleted by Admin
+[24/06/2026 13:17:31] [CLASS_MGMT] - Class ID: 2 was successfully deleted by Admin
+[24/06/2026 13:19:40] [CLASS_MGMT] - Class ID: 1 was successfully deleted by Admin
+[24/06/2026 13:43:40] [EQUIPMENT] - Equipment updated. ID: EQ-003 | Name: "Unchanged" | New Status: [bg-ok]
+[24/06/2026 13:43:43] [EQUIPMENT] - Equipment updated. ID: EQ-003 | Name: "Unchanged" | New Status: [bg-repair]
+[24/06/2026 13:45:23] [EQUIPMENT] - Equipment updated. ID: EQ-030 | Name: "Unchanged" | New Status: [bg-repair]
+[24/06/2026 16:08:30] [CLASS_MGMT] - Class ID: 1 was successfully deleted by Admin
+[24/06/2026 16:09:36] [CLASS_MGMT] - Class ID: 1 was successfully deleted by Admin
+[24/06/2026 16:49:33] [REGISTER] - New user registered: Roham Shahsavari (Roham@gmail.com) | ID: 13 as Member
+[25/06/2026 19:25:09] [EQUIPMENT] - Equipment updated. ID: EQ-008 | Name: "Unchanged" | New Status: [bg-ok]
+[12/07/2026 19:31:12] [ROLE_UPDATE] - User ID 13 role successfully updated to: admin
+[12/07/2026 19:31:18] [ROLE_UPDATE] - User ID 13 role successfully updated to: member
+[12/07/2026 19:31:57] [CLASS_MGMT] - Class ID 1 updated

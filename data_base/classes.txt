@@ -1,0 +1,3 @@
+ID    | CLASS NAME      | INSTRUCTOR      | TIME SLOTS           | CAPACITY
+---------------------------------------------------------------------------
+1     | Fitness-01     | Hamid          | Sat 14:00           | 10

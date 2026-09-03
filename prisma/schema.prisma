@@ -1,0 +1,232 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─── ENUMS ───────────────────────────────────────────
+
+enum UserRole {
+  ADMIN
+  COACH
+  MEMBER
+}
+
+enum EquipmentStatus {
+  OPERATIONAL
+  UNDER_REPAIR
+  OUT_OF_ORDER
+}
+
+enum AttendanceStatus {
+  PRESENT
+  ABSENT
+  LATE
+}
+
+enum MessageType {
+  PUBLIC
+  PRIVATE
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  EXPIRED
+}
+
+enum PlanType {
+  DAILY
+  WEEKLY
+  MONTHLY
+  SIX_MONTH
+  YEARLY
+}
+
+// ─── MODELS ──────────────────────────────────────────
+
+model User {
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String
+  email     String   @unique
+  password  String
+  goal      String?
+  weight    Float?
+  height    Float?
+  age       Int?
+  role      UserRole @default(MEMBER)
+  ipAddress String?
+  createdAt DateTime @default(now())
+
+  // Relations
+  enrolledClasses      Enrollment[]
+  coachClasses         GymClass[]
+  attendanceRecords    Attendance[]    @relation("StudentAttendance")
+  individualWorkouts   IndividualWorkout[]
+  sentMessages         Message[]       @relation("SentMessages")
+  receivedMessages     Message[]       @relation("ReceivedMessages")
+  weightHistory        WeightHistory[]
+  dailyMacros          DailyMacros[]
+  userStats            UserStats?
+  subscriptions        Subscription[]
+
+  @@map("users")
+}
+
+model GymClass {
+  id         String @id @default(uuid()) @db.Uuid
+  className  String
+  timeSlots  String
+  capacity   Int    @default(20)
+  coachId    String @db.Uuid
+  createdAt  DateTime @default(now())
+
+  // Relations
+  coach          User               @relation(fields: [coachId], references: [id], onDelete: Cascade)
+  enrollments    Enrollment[]
+  attendances    Attendance[]
+  groupWorkouts  GroupWorkout[]
+
+  @@map("classes")
+}
+
+model Enrollment {
+  id      String @id @default(uuid()) @db.Uuid
+  userId  String @db.Uuid
+  classId String @db.Uuid
+
+  // Relations
+  user  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  gymClass GymClass @relation(fields: [classId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, classId])
+  @@map("enrollments")
+}
+
+model Equipment {
+  id     String          @id @default(uuid()) @db.Uuid
+  name   String
+  status EquipmentStatus @default(OPERATIONAL)
+  notes  String?
+  date   DateTime        @default(now())
+
+  @@map("equipment")
+}
+
+model Attendance {
+  id        String           @id @default(uuid()) @db.Uuid
+  classId   String           @db.Uuid
+  studentId String           @db.Uuid
+  status    AttendanceStatus
+  date      DateTime         @default(now())
+  savedAt   DateTime         @default(now())
+
+  // Relations
+  gymClass GymClass @relation(fields: [classId], references: [id], onDelete: Cascade)
+  student  User     @relation("StudentAttendance", fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@map("attendance")
+}
+
+model GroupWorkout {
+  id         String   @id @default(uuid()) @db.Uuid
+  classId    String   @db.Uuid
+  date       DateTime @default(now())
+  workoutJson Json
+  createdAt  DateTime @default(now())
+
+  // Relations
+  gymClass GymClass @relation(fields: [classId], references: [id], onDelete: Cascade)
+
+  @@map("group_workouts")
+}
+
+model IndividualWorkout {
+  id          String   @id @default(uuid()) @db.Uuid
+  studentId   String   @db.Uuid
+  date        DateTime @default(now())
+  workoutJson Json
+  createdAt   DateTime @default(now())
+
+  // Relations
+  student User @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@map("individual_workouts")
+}
+
+model Message {
+  id         String      @id @default(uuid()) @db.Uuid
+  content    String
+  type       MessageType @default(PUBLIC)
+  fromId     String      @db.Uuid
+  fromName   String
+  targetId   String?     @db.Uuid
+  targetName String?
+  createdAt  DateTime    @default(now())
+
+  // Relations
+  sender   User  @relation("SentMessages", fields: [fromId], references: [id], onDelete: Cascade)
+  receiver User? @relation("ReceivedMessages", fields: [targetId], references: [id], onDelete: SetNull)
+
+  @@map("messages")
+}
+
+model WeightHistory {
+  id     String   @id @default(uuid()) @db.Uuid
+  userId String   @db.Uuid
+  weight Float
+  date   DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, date])
+  @@map("weight_history")
+}
+
+model DailyMacros {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @db.Uuid
+  calories  Float    @default(0)
+  protein   Float    @default(0)
+  carbs     Float    @default(0)
+  fat       Float    @default(0)
+  date      DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, date])
+  @@map("daily_macros")
+}
+
+model UserStats {
+  id             String   @id @default(uuid()) @db.Uuid
+  userId         String   @unique @db.Uuid
+  currentStreak  Int      @default(0)
+  longestStreak  Int      @default(0)
+  lastAttendance DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_stats")
+}
+
+model Subscription {
+  id              String             @id @default(uuid()) @db.Uuid
+  userId          String             @db.Uuid
+  status          SubscriptionStatus @default(ACTIVE)
+  planType        PlanType           @default(MONTHLY)
+  hasPrivateCoach Boolean            @default(false)
+  hasMealPlan     Boolean            @default(false)
+  startDate       DateTime           @default(now())
+  endDate         DateTime
+  amount          Float              @default(0)
+  giftedBy        String?
+  createdAt       DateTime           @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, status])
+  @@map("subscriptions")
+}

@@ -1,0 +1,2 @@
+JSON_LINES: Each line is a JSON message record
+---------------------------------------------------

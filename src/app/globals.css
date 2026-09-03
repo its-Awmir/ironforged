@@ -1,0 +1,201 @@
+@import "tailwindcss";
+
+/* ══════════════════════════════════════════════════════════
+   MERIDIAN — Design System
+   Industrial precision. Foggy slate. Vintage architectural
+   brutalism. Verdigris + antique brass accents.
+   ══════════════════════════════════════════════════════════ */
+
+:root {
+  /* — Backgrounds (slate/industrial) — */
+  --bg: #0f1216;
+  --bg-deep: #14181d;
+  --bg-panel: #1e232a;
+  --bg-surface: #2d3748;
+
+  /* — Accent 1: Verdigris Green (primary) — */
+  --verdigris: #437a6b;
+  --verdigris-light: #529885;
+  --verdigris-dark: #335f53;
+
+  /* — Accent 2: Antique Brass (secondary/highlight) — */
+  --brass: #c89d5c;
+  --brass-light: #d9ad6a;
+  --brass-dark: #a98348;
+
+  /* — Text (slate) — */
+  --slate-primary: #e2e8f0;
+  --slate-muted: #94a3b8;
+  --slate-subtle: #64748b;
+
+  /* — Borders — */
+  --border: #2d3748;
+
+  /* — Fonts — */
+  --font-slab: var(--font-roboto-slab);
+  --font-mono: var(--font-ibm-plex-mono);
+  --font-body: var(--font-body-sans);
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-bg-deep: var(--bg-deep);
+  --color-bg-panel: var(--bg-panel);
+  --color-bg-surface: var(--bg-surface);
+
+  --color-verdigris: var(--verdigris);
+  --color-verdigris-light: var(--verdigris-light);
+  --color-verdigris-dark: var(--verdigris-dark);
+
+  --color-brass: var(--brass);
+  --color-brass-light: var(--brass-light);
+  --color-brass-dark: var(--brass-dark);
+
+  --color-slate-primary: var(--slate-primary);
+  --color-slate-muted: var(--slate-muted);
+  --color-slate-subtle: var(--slate-subtle);
+
+  --color-border: var(--border);
+
+  --font-sans: var(--font-slab);
+  --font-slab: var(--font-roboto-slab);
+  --font-mono: var(--font-ibm-plex-mono);
+  --font-body: var(--font-body-sans);
+}
+
+html {
+  color-scheme: dark;
+}
+
+body {
+  background: var(--bg);
+  color: var(--slate-primary);
+  font-family: var(--font-body, Arial, Helvetica, sans-serif);
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-slab, Georgia, serif);
+  letter-spacing: -0.01em;
+}
+
+.font-data {
+  font-family: var(--font-mono, monospace);
+}
+
+/* ── Scrollbar ─────────────────────────────────────── */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.3);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.5);
+}
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(148, 163, 184, 0.3) transparent;
+}
+
+/* ── Meridian Panel Card ───────────────────────────── */
+.meridian-card {
+  position: relative;
+  background: linear-gradient(
+    135deg,
+    rgba(30, 35, 42, 0.8) 0%,
+    rgba(20, 24, 29, 0.9) 100%
+  );
+  border: 1px solid rgba(45, 55, 72, 0.6);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(12px);
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+.meridian-card:hover {
+  border-color: rgba(82, 152, 133, 0.35);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+}
+
+/* ── Animations ─────────────────────────────────────── */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.animate-fadeIn { animation: fadeIn 0.4s cubic-bezier(0.16,1,0.3,1) forwards; }
+
+@keyframes shimmer {
+  0%   { background-position: -400px 0; }
+  100% { background-position: 400px 0; }
+}
+.animate-shimmer {
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255,255,255,0.04) 50%,
+    transparent 100%
+  );
+  background-size: 800px 100%;
+  animation: shimmer 1.6s ease-in-out infinite;
+}
+
+/* ── Custom Select ───────────────────────────────────── */
+.meridian-select {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  background-size: 16px;
+  padding-right: 2.5rem;
+}
+.meridian-select:focus {
+  outline: none;
+  border-color: rgba(67, 122, 107, 0.5);
+  box-shadow: 0 0 0 2px rgba(67, 122, 107, 0.25);
+}
+.meridian-select option {
+  background-color: var(--bg-deep);
+  color: var(--slate-primary);
+}
+
+/* ── Focus Ring ──────────────────────────────────────── */
+.focus-ring-verdigris:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(67, 122, 107, 0.4);
+}
+
+/* ── Print / PDF Export ─────────────────────────────── */
+@media print {
+  * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; color-adjust: exact !important; }
+
+  body { background: #fff !important; color: #111 !important; font-family: Arial, Helvetica, sans-serif !important; }
+
+  .no-print { display: none !important; }
+
+  .meridian-card {
+    background: #fff !important;
+    border: 1px solid #e5e7eb !important;
+    box-shadow: none !important;
+    transform: none !important;
+  }
+
+  .text-slate-primary { color: #111 !important; }
+  .text-slate-muted { color: #333 !important; }
+  .text-slate-subtle { color: #666 !important; }
+
+  table { width: 100% !important; border-collapse: collapse !important; }
+  thead tr { border-bottom: 2px solid #e5e7eb !important; }
+  tbody tr { border-bottom: 1px solid #f3f4f6 !important; }
+  th, td { padding: 8px 12px !important; font-size: 11px !important; }
+
+  #workout-printable { padding: 0; }
+  #workout-printable > div { border: 1px solid #e5e7eb !important; background: #fafafa !important; margin-bottom: 8px; }
+
+  @page { margin: 20mm 15mm; size: A4; }
+}
