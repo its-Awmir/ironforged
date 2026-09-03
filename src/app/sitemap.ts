@@ -1,23 +1,23 @@
 import type { MetadataRoute } from "next";
 
-export default function sitemap(): MetadataRoute.Sitemap {
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://meridian.example.com";
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://meridian.example.com";
 
+export default function sitemap(): MetadataRoute.Sitemap {
   return [
     {
-      url: baseUrl,
+      url: siteUrl,
       lastModified: new Date(),
       changeFrequency: "monthly",
       priority: 1,
     },
     {
-      url: `${baseUrl}/login`,
+      url: `${siteUrl}/login`,
       lastModified: new Date(),
       changeFrequency: "yearly",
       priority: 0.3,
     },
     {
-      url: `${baseUrl}/register`,
+      url: `${siteUrl}/register`,
       lastModified: new Date(),
       changeFrequency: "yearly",
       priority: 0.3,

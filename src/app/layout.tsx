@@ -35,6 +35,9 @@ export const metadata: Metadata = {
     shortcut: "/img/logo.svg",
     apple: "/img/logo.svg",
   },
+  alternates: {
+    canonical: "/",
+  },
   openGraph: {
     type: "website",
     locale: "en_US",
@@ -43,6 +46,21 @@ export const metadata: Metadata = {
     title: "MERIDIAN | Elite Fitness Management",
     description:
       "Precision-built management for elite fitness facilities — classes, coaching, nutrition, and analytics.",
+    images: [
+      {
+        url: "/img/logo.svg",
+        width: 512,
+        height: 512,
+        alt: "MERIDIAN",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary",
+    title: "MERIDIAN | Elite Fitness Management",
+    description:
+      "Precision-built management for elite fitness facilities — classes, coaching, nutrition, and analytics.",
+    images: ["/img/logo.svg"],
   },
   robots: {
     index: true,
@@ -53,6 +71,7 @@ export const metadata: Metadata = {
       "max-image-preview": "large",
     },
   },
+  category: "technology",
   metadataBase: new URL(siteUrl),
 };
 

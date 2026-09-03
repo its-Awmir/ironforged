@@ -3,6 +3,7 @@
 interface SpinnerProps {
   size?: "sm" | "md" | "lg";
   className?: string;
+  label?: string;
 }
 
 const sizes = {
@@ -11,12 +12,15 @@ const sizes = {
   lg: "h-8 w-8",
 };
 
-export default function Spinner({ size = "sm", className = "" }: SpinnerProps) {
+export default function Spinner({ size = "sm", className = "", label }: SpinnerProps) {
   return (
     <svg
       className={`animate-spin ${sizes[size]} ${className}`}
       viewBox="0 0 24 24"
       fill="none"
+      role={label ? "status" : undefined}
+      aria-label={label}
+      aria-hidden={label ? undefined : true}
     >
       <circle
         className="opacity-25"

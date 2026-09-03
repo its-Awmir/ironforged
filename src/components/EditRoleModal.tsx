@@ -42,12 +42,19 @@ export default function EditRoleModal({
       <div
         className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-fadeIn"
         onClick={onCancel}
+        aria-hidden="true"
       />
 
       {/* Dialog */}
-      <div className="relative z-10 w-full max-w-sm rounded-2xl bg-[#0b0b0e] border border-zinc-800 p-6 space-y-5 animate-fadeIn">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="edit-role-modal-title"
+        aria-describedby="edit-role-modal-desc"
+        className="relative z-10 w-full max-w-sm rounded-2xl bg-[#0b0b0e] border border-zinc-800 p-6 space-y-5 animate-fadeIn"
+      >
         {/* Icon */}
-        <div className="flex justify-center">
+        <div className="flex justify-center" aria-hidden="true">
           <div className="w-12 h-12 rounded-full flex items-center justify-center bg-blue-500/10 border border-blue-500/20">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-blue-400">
               <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
@@ -58,20 +65,21 @@ export default function EditRoleModal({
 
         {/* Text */}
         <div className="text-center space-y-1">
-          <h3 className="text-sm font-black text-white uppercase tracking-wider">
+          <h3 id="edit-role-modal-title" className="text-sm font-black text-white uppercase tracking-wider">
             Edit Role
           </h3>
-          <p className="text-xs text-zinc-400">
+          <p id="edit-role-modal-desc" className="text-xs text-zinc-400">
             Change role for <span className="text-white font-bold">{userName}</span>
           </p>
         </div>
 
         {/* Role buttons */}
-        <div className="flex gap-2 justify-center">
+        <div className="flex gap-2 justify-center" role="group" aria-label="Select role">
           {ROLES.map((role) => (
             <button
               key={role}
               onClick={() => setSelected(role.toLowerCase())}
+              aria-pressed={selected === role.toLowerCase()}
               className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider border transition-all ${
                 selected === role.toLowerCase()
                   ? role === "Admin"
@@ -91,12 +99,14 @@ export default function EditRoleModal({
         <div className="flex gap-3 justify-center pt-1">
           <button
             onClick={onCancel}
+            aria-label="Cancel"
             className="px-5 py-2.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-xs font-bold text-zinc-400 transition-colors"
           >
             Cancel
           </button>
           <button
             onClick={() => onConfirm(selected)}
+            aria-label="Save role"
             className="px-5 py-2.5 rounded-xl bg-blue-500 hover:bg-blue-600 text-xs font-black uppercase tracking-wider text-white shadow-lg shadow-blue-500/20 transition-all"
           >
             Save Role

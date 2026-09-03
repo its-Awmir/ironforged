@@ -371,16 +371,16 @@ export default function CoachPanelPage() {
       <div className="fixed top-[-10%] right-[-10%] w-[500px] h-[500px] bg-red-900/10 rounded-full blur-[160px] pointer-events-none z-0 no-print" />
 
       {isMobileMenuOpen && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-30 lg:hidden no-print" onClick={() => setIsMobileMenuOpen(false)} />
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-30 lg:hidden no-print" onClick={() => setIsMobileMenuOpen(false)} aria-hidden="true" />
       )}
 
       {/* Sidebar */}
-      <aside className={`w-64 border-r border-zinc-900/60 bg-[#0b0b0e]/95 lg:bg-[#0b0b0e]/80 backdrop-blur-xl p-6 flex flex-col justify-between fixed h-screen z-40 lg:z-30 transition-transform duration-300 ease-in-out no-print ${isMobileMenuOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}`}>
+      <aside aria-label="Coach navigation" className={`w-64 border-r border-zinc-900/60 bg-[#0b0b0e]/95 lg:bg-[#0b0b0e]/80 backdrop-blur-xl p-6 flex flex-col justify-between fixed h-screen z-40 lg:z-30 transition-transform duration-300 ease-in-out no-print ${isMobileMenuOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}`}>
         <div>
           <div className="mb-10 pl-2 flex items-center justify-between">
             <Link href="/"><img src="/img/logo.svg" alt="IronForged" className="h-9 hover:opacity-80 transition-opacity" /></Link>
-            <button onClick={() => setIsMobileMenuOpen(false)} className="lg:hidden text-zinc-400 hover:text-white">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+            <button onClick={() => setIsMobileMenuOpen(false)} aria-label="Close menu" className="lg:hidden text-zinc-400 hover:text-white">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
             </button>
           </div>
           <nav className="space-y-1.5">
@@ -391,9 +391,10 @@ export default function CoachPanelPage() {
               { id: "messages", label: "Messages", icon: "messages" },
             ].map((tab) => (
               <button key={tab.id} onClick={() => showSection(tab.id)}
+                aria-current={activeSection === tab.id ? "page" : undefined}
                 className={`w-full flex items-center gap-3.5 px-4 py-3 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all relative ${activeSection === tab.id ? "bg-gradient-to-r from-zinc-900 to-zinc-900/50 text-red-500 border border-zinc-800/80 shadow-inner" : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/30"}`}>
-                {activeSection === tab.id && <span className="absolute left-0 w-[3px] h-5 bg-red-500 rounded-r-full shadow-[0_0_10px_rgba(239,68,68,0.7)]" />}
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                {activeSection === tab.id && <span className="absolute left-0 w-[3px] h-5 bg-red-500 rounded-r-full shadow-[0_0_10px_rgba(239,68,68,0.7)]" aria-hidden="true" />}
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true">
                   {tab.icon === "classes" && <><rect x="3" y="4" width="18" height="18" rx="2" ry="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /></>}
                   {tab.icon === "attendance" && <><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><polyline points="16 11 18 13 22 9" /></>}
                   {tab.icon === "workouts" && <><path d="M6.5 6.5 11 11M13 13l4.5 4.5" /><path d="M11 11 8 8a2.83 2.83 0 0 1 0-4l4-4 4 4-4 4" /><path d="m13 13 3 3a2.83 2.83 0 0 1 0 4l-4 4-4-4 4-4" /></>}
@@ -405,7 +406,7 @@ export default function CoachPanelPage() {
           </nav>
         </div>
         <div className="space-y-2 border-t border-zinc-900/60 pt-4">
-          <button onClick={handleLogout} className="w-full flex items-center gap-3 text-zinc-500 hover:text-red-400 font-bold text-[11px] uppercase tracking-wider px-4 py-2 rounded-xl transition-colors text-left cursor-pointer">
+          <button onClick={handleLogout} aria-label="Log out" className="w-full flex items-center gap-3 text-zinc-500 hover:text-red-400 font-bold text-[11px] uppercase tracking-wider px-4 py-2 rounded-xl transition-colors text-left cursor-pointer">
             Log Out
           </button>
         </div>
@@ -415,8 +416,8 @@ export default function CoachPanelPage() {
       <main className="flex-1 w-full lg:pl-64 min-h-screen flex flex-col z-10 relative">
         <header className="px-4 lg:px-8 pt-6 lg:pt-8 pb-4 flex items-center justify-between border-b border-zinc-900/30 lg:border-none no-print">
           <div className="flex items-center gap-3">
-            <button onClick={() => setIsMobileMenuOpen(true)} className="lg:hidden p-2 bg-zinc-900 border border-zinc-800 rounded-xl text-zinc-300 hover:text-white transition-colors">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="18" x2="21" y2="18" /></svg>
+            <button onClick={() => setIsMobileMenuOpen(true)} aria-label="Open menu" className="lg:hidden p-2 bg-zinc-900 border border-zinc-800 rounded-xl text-zinc-300 hover:text-white transition-colors">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true"><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="18" x2="21" y2="18" /></svg>
             </button>
             <div>
               <h1 className="text-lg lg:text-2xl font-black uppercase tracking-wider text-white">
@@ -440,13 +441,13 @@ export default function CoachPanelPage() {
                 <span className="text-[10px] bg-zinc-900/80 px-3 py-1 rounded-full font-bold text-zinc-400">{classes.length} CLASSES</span>
               </div>
               <div className="w-full overflow-x-auto block">
-                <table className="w-full text-left text-xs min-w-[650px]">
+                <table className="w-full text-left text-xs min-w-[650px]" aria-label="My classes">
                   <thead>
                     <tr className="text-[9px] uppercase font-black text-zinc-500 tracking-widest border-b border-zinc-900 pb-3">
-                      <th className="pb-2">Title</th>
-                      <th className="pb-2">Schedule</th>
-                      <th className="pb-2">Enrolled</th>
-                      <th className="pb-2 text-right">Actions</th>
+                      <th scope="col" className="pb-2">Title</th>
+                      <th scope="col" className="pb-2">Schedule</th>
+                      <th scope="col" className="pb-2">Enrolled</th>
+                      <th scope="col" className="pb-2 text-right">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-zinc-900/40 text-zinc-300">
@@ -502,11 +503,11 @@ export default function CoachPanelPage() {
               ) : selectedClass && attendanceRecords.length > 0 ? (
                 <>
                   <div className="w-full overflow-x-auto block">
-                    <table className="w-full text-left text-xs min-w-[500px]">
+                    <table className="w-full text-left text-xs min-w-[500px]" aria-label="Attendance roster">
                       <thead>
                         <tr className="text-[9px] uppercase font-black text-zinc-500 tracking-widest border-b border-zinc-900 pb-3">
-                          <th className="pb-2">Student</th>
-                          <th className="pb-2">Status</th>
+                          <th scope="col" className="pb-2">Student</th>
+                          <th scope="col" className="pb-2">Status</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-zinc-900/40 text-zinc-300">
@@ -521,7 +522,7 @@ export default function CoachPanelPage() {
                               <td className="py-3">
                                 <div className="flex gap-1.5">
                                   {["Present", "Absent", "Late"].map((status) => (
-                                    <button key={status} onClick={() => {
+                                    <button key={status} aria-pressed={record?.status === status} onClick={() => {
                                       setAttendanceRecords((prev) => prev.map((r) => r.studentId === student.id ? { ...r, status } : r));
                                     }}
                                       className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider border transition-colors ${record?.status === status ? (status === "Present" ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/30" : status === "Late" ? "bg-amber-500/20 text-amber-400 border-amber-500/30" : "bg-red-500/20 text-red-400 border-red-500/30") : "bg-zinc-900/50 text-zinc-500 border-zinc-800 hover:text-zinc-300"}`}>

@@ -52,15 +52,20 @@ export default function ConfirmModal({
       <div
         className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-fadeIn"
         onClick={onCancel}
+        aria-hidden="true"
       />
 
       {/* Dialog */}
       <div
         ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="confirm-modal-title"
+        aria-describedby="confirm-modal-message"
         className={`relative z-10 w-full max-w-sm rounded-2xl bg-[#0b0b0e] border ${glowBorder} p-6 space-y-4 animate-fadeIn`}
       >
         {/* Icon */}
-        <div className="flex justify-center">
+        <div className="flex justify-center" aria-hidden="true">
           <div
             className={`w-12 h-12 rounded-full flex items-center justify-center ${
               variant === "danger"
@@ -88,22 +93,24 @@ export default function ConfirmModal({
 
         {/* Text */}
         <div className="text-center space-y-1">
-          <h3 className="text-sm font-black text-white uppercase tracking-wider">
+          <h3 id="confirm-modal-title" className="text-sm font-black text-white uppercase tracking-wider">
             {title}
           </h3>
-          <p className="text-xs text-zinc-400 leading-relaxed">{message}</p>
+          <p id="confirm-modal-message" className="text-xs text-zinc-400 leading-relaxed">{message}</p>
         </div>
 
         {/* Buttons */}
         <div className="flex gap-3 justify-center pt-1">
           <button
             onClick={onCancel}
+            aria-label={cancelLabel}
             className="px-5 py-2.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-xs font-bold text-zinc-400 transition-colors"
           >
             {cancelLabel}
           </button>
           <button
             onClick={onConfirm}
+            aria-label={confirmLabel}
             className={`px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider text-white transition-all ${confirmClasses}`}
           >
             {confirmLabel}

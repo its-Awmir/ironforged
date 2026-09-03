@@ -92,12 +92,13 @@ function ToastItem({ toast, onDone }: { toast: Toast; onDone: (id: number) => vo
         ${exiting ? "opacity-0 translate-x-8 scale-95" : "opacity-100 translate-x-0 scale-100"}
       `}
     >
-      <div className={`${c.bg} ${c.iconColor} p-1.5 rounded-lg`}>
+      <div className={`${c.bg} ${c.iconColor} p-1.5 rounded-lg`} aria-hidden="true">
         {c.icon}
       </div>
       <p className="text-xs font-semibold text-zinc-200 flex-1 leading-snug">{toast.message}</p>
       <button
         onClick={() => { setExiting(true); setTimeout(() => onDone(toast.id), 300); }}
+        aria-label="Dismiss notification"
         className="text-zinc-600 hover:text-zinc-300 transition-colors shrink-0"
       >
         <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
@@ -130,7 +131,11 @@ export function ToastContainer() {
   if (toasts.length === 0) return null;
 
   return (
-    <div className="fixed bottom-6 right-6 z-[9999] flex flex-col gap-2 items-end pointer-events-none">
+    <div
+      className="fixed bottom-6 right-6 z-[9999] flex flex-col gap-2 items-end pointer-events-none"
+      role="status"
+      aria-live="polite"
+    >
       {toasts.map((t) => (
         <div key={t.id} className="pointer-events-auto">
           <ToastItem toast={t} onDone={handleDone} />

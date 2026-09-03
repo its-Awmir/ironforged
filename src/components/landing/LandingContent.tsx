@@ -141,6 +141,14 @@ export default function HomePage() {
   return (
     <div className="min-h-screen bg-black text-zinc-100 font-sans scroll-smooth">
 
+      {/* Skip to content link for keyboard/AT users */}
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[10000] focus:rounded-lg focus:bg-verdigris focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-slate-50"
+      >
+        Skip to content
+      </a>
+
       {/* Scroll progress bar */}
       <div
         className="fixed top-0 left-0 h-[3px] bg-gradient-to-r from-verdigris to-brass z-[1001] transition-all duration-100 ease-out"
@@ -203,9 +211,11 @@ export default function HomePage() {
         </nav>
       </header>
 
+      <main id="main-content">
       {/* Hero Section */}
       <section
         id="home"
+        aria-labelledby="hero-heading"
         className="relative w-full h-screen flex flex-col items-center justify-center text-center px-4 bg-bg-deep bg-cover bg-center overflow-hidden"
         style={{ backgroundImage: "url('/Pic/indexbg.jpeg')" }}
       >
@@ -219,7 +229,7 @@ export default function HomePage() {
             EST. 1998
           </div>
 
-          <h1 className="text-5xl md:text-7xl font-bold tracking-tighter text-slate-primary uppercase mb-4 leading-none select-none font-slab">
+          <h1 id="hero-heading" className="text-5xl md:text-7xl font-bold tracking-tighter text-slate-primary uppercase mb-4 leading-none select-none font-slab">
             BUILT BY <span className="text-verdigris-light drop-shadow-[0_0_35px_rgba(82,152,133,0.4)]">PRECISION</span>
           </h1>
 
@@ -241,7 +251,7 @@ export default function HomePage() {
       </section>
 
       {/* Our Legacy */}
-      <section id="legacy" className="py-24 px-6 md:px-16 max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-12 items-center border-t border-zinc-900">
+      <section id="legacy" aria-labelledby="legacy-heading" className="py-24 px-6 md:px-16 max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-12 items-center border-t border-zinc-900">
         <div className="overflow-hidden rounded-3xl border border-border shadow-2xl">
           <Image
             src="https://images.unsplash.com/photo-1517836357463-d25dfeac3438?q=80&w=800"
@@ -252,23 +262,23 @@ export default function HomePage() {
           />
         </div>
         <div className="flex flex-col items-start">
-          <span className="text-xs font-bold text-red-500 uppercase tracking-widest mb-3">OUR LEGACY</span>
-          <h2 className="text-3xl md:text-4xl font-black text-white uppercase tracking-tight mb-4">
-            FROM GROUND UP TO A <span className="text-red-500">GLOBAL</span> EMPIRE
+          <span className="text-xs font-bold text-verdigris-light uppercase tracking-widest mb-3">OUR LEGACY</span>
+          <h2 id="legacy-heading" className="text-3xl md:text-4xl font-black text-white uppercase tracking-tight mb-4">
+            FROM GROUND UP TO A <span className="text-verdigris-light">GLOBAL</span> STANDARD
           </h2>
-          <p className="text-zinc-400 text-sm leading-relaxed mb-8">From a small warehouse in 1998 to a global empire. IronForged has always been about the results and uncompromised excellence.</p>
+          <p className="text-zinc-400 text-sm leading-relaxed mb-8">From a single training floor to a worldwide standard. MERIDIAN has always been about results and uncompromised precision.</p>
 
           <div className="grid grid-cols-3 gap-6 md:gap-10 w-full pt-6 border-t border-zinc-900">
             <div>
-              <div className="text-3xl md:text-4xl font-black text-red-500 mb-1">{years.toLocaleString()}</div>
+              <div className="text-3xl md:text-4xl font-black text-verdigris-light mb-1">{years.toLocaleString()}</div>
               <div className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Years</div>
             </div>
             <div>
-              <div className="text-3xl md:text-4xl font-black text-red-500 mb-1">{members.toLocaleString()}+</div>
+              <div className="text-3xl md:text-4xl font-black text-verdigris-light mb-1">{members.toLocaleString()}+</div>
               <div className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Members</div>
             </div>
             <div>
-              <div className="text-3xl md:text-4xl font-black text-red-500 mb-1">{facilities.toLocaleString()}</div>
+              <div className="text-3xl md:text-4xl font-black text-verdigris-light mb-1">{facilities.toLocaleString()}</div>
               <div className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Facilities</div>
             </div>
           </div>
@@ -276,32 +286,32 @@ export default function HomePage() {
       </section>
 
       {/* Features */}
-      <section id="services" className="py-24 bg-zinc-950 px-6 md:px-12 border-t border-zinc-900">
+      <section id="services" aria-labelledby="services-heading" className="py-24 bg-zinc-950 px-6 md:px-12 border-t border-zinc-900">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-black text-white uppercase tracking-tight">SYSTEM FEATURES</h2>
+            <h2 id="services-heading" className="text-3xl md:text-4xl font-black text-white uppercase tracking-tight">SYSTEM FEATURES</h2>
             <p className="text-zinc-500 text-xs uppercase tracking-widest mt-2">Engineered for absolute performance</p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div onClick={handleGetStarted} className="group p-8 rounded-2xl bg-zinc-900/40 border border-zinc-800/60 hover:border-red-500/40 cursor-pointer transition-all hover:-translate-y-1">
-              <div className="w-12 h-12 rounded-xl bg-zinc-900 flex items-center justify-center text-red-500 border border-zinc-800 mb-6 group-hover:bg-red-500 group-hover:text-white transition-all">
+            <div onClick={handleGetStarted} className="group p-8 rounded-2xl bg-zinc-900/40 border border-zinc-800/60 hover:border-verdigris/40 cursor-pointer transition-all hover:-translate-y-1">
+              <div className="w-12 h-12 rounded-xl bg-zinc-900 flex items-center justify-center text-verdigris-light border border-zinc-800 mb-6 group-hover:bg-verdigris group-hover:text-white transition-all">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>
               </div>
               <h3 className="text-lg font-bold text-white mb-2">Membership</h3>
               <p className="text-zinc-400 text-sm leading-relaxed">Cloud-based member tracking and automated subscription renewals with real-time analytics.</p>
             </div>
 
-            <div onClick={handleGetStarted} className="group p-8 rounded-2xl bg-zinc-900/40 border border-zinc-800/60 hover:border-red-500/40 cursor-pointer transition-all hover:-translate-y-1">
-              <div className="w-12 h-12 rounded-xl bg-zinc-900 flex items-center justify-center text-red-500 border border-zinc-800 mb-6 group-hover:bg-red-500 group-hover:text-white transition-all">
+            <div onClick={handleGetStarted} className="group p-8 rounded-2xl bg-zinc-900/40 border border-zinc-800/60 hover:border-verdigris/40 cursor-pointer transition-all hover:-translate-y-1">
+              <div className="w-12 h-12 rounded-xl bg-zinc-900 flex items-center justify-center text-verdigris-light border border-zinc-800 mb-6 group-hover:bg-verdigris group-hover:text-white transition-all">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><line x1="18" y1="20" x2="18" y2="10" /><line x1="12" y1="20" x2="12" y2="4" /><line x1="6" y1="20" x2="6" y2="14" /><line x1="2" y1="20" x2="22" y2="20" /></svg>
               </div>
               <h3 className="text-lg font-bold text-white mb-2">Analytics</h3>
-              <p className="text-zinc-400 text-sm leading-relaxed">Track your gym's growth and member retention with smart charts and AI-driven insights.</p>
+              <p className="text-zinc-400 text-sm leading-relaxed">Track your gym&apos;s growth and member retention with smart charts and AI-driven insights.</p>
             </div>
 
-            <div onClick={handleGetStarted} className="group p-8 rounded-2xl bg-zinc-900/40 border border-zinc-800/60 hover:border-red-500/40 cursor-pointer transition-all hover:-translate-y-1">
-              <div className="w-12 h-12 rounded-xl bg-zinc-900 flex items-center justify-center text-red-500 border border-zinc-800 mb-6 group-hover:bg-red-500 group-hover:text-white transition-all">
+            <div onClick={handleGetStarted} className="group p-8 rounded-2xl bg-zinc-900/40 border border-zinc-800/60 hover:border-verdigris/40 cursor-pointer transition-all hover:-translate-y-1">
+              <div className="w-12 h-12 rounded-xl bg-zinc-900 flex items-center justify-center text-verdigris-light border border-zinc-800 mb-6 group-hover:bg-verdigris group-hover:text-white transition-all">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="3" y="11" width="18" height="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>
               </div>
               <h3 className="text-lg font-bold text-white mb-2">Security</h3>
@@ -312,9 +322,9 @@ export default function HomePage() {
       </section>
 
       {/* Contact Form */}
-      <section id="contact" className="py-24 max-w-7xl mx-auto px-6 md:px-12">
+      <section id="contact" aria-labelledby="contact-heading" className="py-24 max-w-7xl mx-auto px-6 md:px-12">
         <div className="text-center mb-16">
-          <h2 className="text-3xl md:text-4xl font-black text-white uppercase tracking-tight">GET IN TOUCH</h2>
+          <h2 id="contact-heading" className="text-3xl md:text-4xl font-black text-white uppercase tracking-tight">GET IN TOUCH</h2>
           <p className="text-zinc-500 text-xs uppercase tracking-widest mt-2">We are here to answer your questions</p>
         </div>
 
@@ -324,16 +334,16 @@ export default function HomePage() {
               <h3 className="text-xl font-extrabold text-white uppercase tracking-wider mb-6">CONTACT INFO</h3>
               <div className="space-y-4 text-sm text-zinc-400">
                 <p className="flex items-center gap-3">
-                  <svg className="text-red-500 shrink-0" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" /></svg>
+                  <svg className="text-verdigris-light shrink-0" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" /></svg>
                   1224 Muscle Blvd, Iron City, NY
                 </p>
                 <p className="flex items-center gap-3">
-                  <svg className="text-red-500 shrink-0" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" /></svg>
+                  <svg className="text-verdigris-light shrink-0" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" /></svg>
                   +1 (555) 000-1234
                 </p>
                 <p className="flex items-center gap-3">
-                  <svg className="text-red-500 shrink-0" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" /><polyline points="22,6 12,13 2,6" /></svg>
-                  support@ironforged.com
+                  <svg className="text-verdigris-light shrink-0" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" /><polyline points="22,6 12,13 2,6" /></svg>
+                  support@meridian.fit
                 </p>
               </div>
             </div>
@@ -350,47 +360,60 @@ export default function HomePage() {
           </div>
 
           <form onSubmit={handleContactSubmit} className="md:col-span-3 space-y-4">
-            <input
-              type="text"
-              value={contactName}
-              onChange={(e) => setContactName(e.target.value)}
-              placeholder="Your Name"
-              required
-              className="w-full rounded-xl bg-zinc-900/60 border border-zinc-800 px-4 py-3.5 text-sm text-white placeholder-zinc-600 focus:border-red-500 focus:outline-none transition-colors"
-            />
-            <input
-              type="email"
-              value={contactEmail}
-              onChange={(e) => setContactEmail(e.target.value)}
-              placeholder="Your Email"
-              required
-              className="w-full rounded-xl bg-zinc-900/60 border border-zinc-800 px-4 py-3.5 text-sm text-white placeholder-zinc-600 focus:border-red-500 focus:outline-none transition-colors"
-            />
-            <textarea
-              rows={5}
-              value={contactMessage}
-              onChange={(e) => setContactMessage(e.target.value)}
-              placeholder="Your Message"
-              required
-              className="w-full rounded-xl bg-zinc-900/60 border border-zinc-800 px-4 py-3.5 text-sm text-white placeholder-zinc-600 focus:border-red-500 focus:outline-none transition-colors resize-none"
-            />
+            <div>
+              <label htmlFor="contact-name" className="sr-only">Your Name</label>
+              <input
+                id="contact-name"
+                type="text"
+                value={contactName}
+                onChange={(e) => setContactName(e.target.value)}
+                placeholder="Your Name"
+                required
+                className="w-full rounded-xl bg-zinc-900/60 border border-zinc-800 px-4 py-3.5 text-sm text-white placeholder-zinc-600 focus:border-verdigris focus:outline-none transition-colors"
+              />
+            </div>
+            <div>
+              <label htmlFor="contact-email" className="sr-only">Your Email</label>
+              <input
+                id="contact-email"
+                type="email"
+                value={contactEmail}
+                onChange={(e) => setContactEmail(e.target.value)}
+                placeholder="Your Email"
+                required
+                className="w-full rounded-xl bg-zinc-900/60 border border-zinc-800 px-4 py-3.5 text-sm text-white placeholder-zinc-600 focus:border-verdigris focus:outline-none transition-colors"
+              />
+            </div>
+            <div>
+              <label htmlFor="contact-message" className="sr-only">Your Message</label>
+              <textarea
+                id="contact-message"
+                rows={5}
+                value={contactMessage}
+                onChange={(e) => setContactMessage(e.target.value)}
+                placeholder="Your Message"
+                required
+                className="w-full rounded-xl bg-zinc-900/60 border border-zinc-800 px-4 py-3.5 text-sm text-white placeholder-zinc-600 focus:border-verdigris focus:outline-none transition-colors resize-none"
+              />
+            </div>
             <button
               type="submit"
               disabled={isSending}
-              className="w-full rounded-xl bg-red-500 py-4 font-bold uppercase text-xs text-white tracking-wider hover:bg-red-600 transition-colors disabled:opacity-50"
+              className="w-full rounded-xl bg-verdigris py-4 font-bold uppercase text-xs text-white tracking-wider hover:bg-verdigris-dark transition-colors disabled:opacity-50"
             >
               {isSending ? "SENDING..." : "SEND MESSAGE"}
             </button>
           </form>
         </div>
       </section>
+      </main>
 
       {/* Footer */}
       <footer className="bg-black border-t border-zinc-900 py-16 px-6 md:px-12 text-xs text-zinc-500">
         <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-10 mb-12">
           <div>
-            <h3 className="text-white font-black uppercase tracking-wider mb-4 text-sm">IRONFORGED</h3>
-            <p className="leading-relaxed">The gold standard in gym management systems since 1998.</p>
+            <h3 className="text-white font-black uppercase tracking-wider mb-4 text-sm">MERIDIAN</h3>
+            <p className="leading-relaxed">The precision-built management system for elite fitness facilities.</p>
           </div>
           <div>
             <h3 className="text-white font-black uppercase tracking-wider mb-4 text-sm">QUICK LINKS</h3>
@@ -409,7 +432,7 @@ export default function HomePage() {
           </div>
         </div>
         <div className="max-w-7xl mx-auto border-t border-zinc-900 pt-6 text-center">
-          <p>&copy; 2026 IRONFORGED INDUSTRIES. ALL RIGHTS RESERVED.</p>
+          <p>&copy; 2026 MERIDIAN. ALL RIGHTS RESERVED.</p>
         </div>
       </footer>
 
@@ -417,7 +440,7 @@ export default function HomePage() {
       <ConfirmModal
         open={showLogoutModal}
         title="Sign Out"
-        message="Are you sure you want to log out from IRONFORGED?"
+        message="Are you sure you want to log out from MERIDIAN?"
         confirmLabel="Sign Out"
         cancelLabel="Stay"
         variant="danger"

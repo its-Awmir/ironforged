@@ -702,18 +702,18 @@ export default function AdminPanelPage() {
       <div className="fixed top-[-10%] right-[-10%] w-[500px] h-[500px] bg-red-900/10 rounded-full blur-[160px] pointer-events-none z-0" />
 
       {isMobileMenuOpen && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-30 lg:hidden" onClick={() => setIsMobileMenuOpen(false)} />
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-30 lg:hidden" onClick={() => setIsMobileMenuOpen(false)} aria-hidden="true" />
       )}
 
       {/* Sidebar */}
-      <aside className={`w-64 border-r border-zinc-900/60 bg-[#0b0b0e]/95 lg:bg-[#0b0b0e]/80 backdrop-blur-xl p-6 flex flex-col justify-between fixed h-screen z-40 lg:z-30 transition-transform duration-300 ease-in-out ${isMobileMenuOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}`}>
+      <aside aria-label="Admin navigation" className={`w-64 border-r border-zinc-900/60 bg-[#0b0b0e]/95 lg:bg-[#0b0b0e]/80 backdrop-blur-xl p-6 flex flex-col justify-between fixed h-screen z-40 lg:z-30 transition-transform duration-300 ease-in-out ${isMobileMenuOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}`}>
         <div>
           <div className="mb-10 pl-2 flex items-center justify-between">
             <Link href="/">
               <img src="/img/logo.svg" alt="IronForged" className="h-9 hover:opacity-80 transition-opacity" />
             </Link>
-            <button onClick={() => setIsMobileMenuOpen(false)} className="lg:hidden text-zinc-400 hover:text-white">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+            <button onClick={() => setIsMobileMenuOpen(false)} aria-label="Close menu" className="lg:hidden text-zinc-400 hover:text-white">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
             </button>
           </div>
 
@@ -728,12 +728,13 @@ export default function AdminPanelPage() {
               <button
                 key={tab.id}
                 onClick={() => showSection(tab.id)}
+                aria-current={activeSection === tab.id ? "page" : undefined}
                 className={`w-full flex items-center gap-3.5 px-4 py-3 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all relative ${activeSection === tab.id ? "bg-gradient-to-r from-zinc-900 to-zinc-900/50 text-red-500 border border-zinc-800/80 shadow-inner" : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/30"}`}
               >
                 {activeSection === tab.id && (
-                  <span className="absolute left-0 w-[3px] h-5 bg-red-500 rounded-r-full shadow-[0_0_10px_rgba(239,68,68,0.7)]"></span>
+                  <span className="absolute left-0 w-[3px] h-5 bg-red-500 rounded-r-full shadow-[0_0_10px_rgba(239,68,68,0.7)]" aria-hidden="true"></span>
                 )}
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true">
                   {tab.icon === "members" && <><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /></>}
                   {tab.icon === "classes" && <><rect x="3" y="4" width="18" height="18" rx="2" ry="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /></>}
                   {tab.icon === "subscriptions" && <><rect x="2" y="5" width="20" height="14" rx="2" /><line x1="2" y1="10" x2="22" y2="10" /></>}
@@ -747,7 +748,7 @@ export default function AdminPanelPage() {
         </div>
 
         <div className="space-y-2 border-t border-zinc-900/60 pt-4">
-          <button onClick={handleLogout} className="w-full flex items-center gap-3 text-zinc-500 hover:text-red-400 font-bold text-[11px] uppercase tracking-wider px-4 py-2 rounded-xl transition-colors text-left cursor-pointer">
+          <button onClick={handleLogout} aria-label="Log out" className="w-full flex items-center gap-3 text-zinc-500 hover:text-red-400 font-bold text-[11px] uppercase tracking-wider px-4 py-2 rounded-xl transition-colors text-left cursor-pointer">
             Log Out
           </button>
         </div>
@@ -757,8 +758,8 @@ export default function AdminPanelPage() {
       <main className="flex-1 w-full lg:pl-64 min-h-screen flex flex-col z-10 relative">
         <header className="px-4 lg:px-8 pt-6 lg:pt-8 pb-4 flex items-center justify-between border-b border-zinc-900/30 lg:border-none">
           <div className="flex items-center gap-3">
-            <button onClick={() => setIsMobileMenuOpen(true)} className="lg:hidden p-2 bg-zinc-900 border border-zinc-800 rounded-xl text-zinc-300 hover:text-white transition-colors">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="18" x2="21" y2="18" /></svg>
+            <button onClick={() => setIsMobileMenuOpen(true)} aria-label="Open menu" className="lg:hidden p-2 bg-zinc-900 border border-zinc-800 rounded-xl text-zinc-300 hover:text-white transition-colors">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true"><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="18" x2="21" y2="18" /></svg>
             </button>
             <div>
               <h1 className="text-lg lg:text-2xl font-black uppercase tracking-wider text-white">
@@ -810,14 +811,14 @@ export default function AdminPanelPage() {
               </div>
 
               <div className="w-full overflow-x-auto block">
-                <table className="w-full text-left text-xs min-w-[600px]">
+                <table className="w-full text-left text-xs min-w-[600px]" aria-label="Members">
                   <thead>
                     <tr className="text-[9px] uppercase font-black text-zinc-500 tracking-widest border-b border-zinc-900 pb-3">
-                      <th className="pb-2">Name</th>
-                      <th className="pb-2">Email</th>
-                      <th className="pb-2">Role</th>
-                      <th className="pb-2">Goal</th>
-                      <th className="pb-2 text-right">Actions</th>
+                      <th scope="col" className="pb-2">Name</th>
+                      <th scope="col" className="pb-2">Email</th>
+                      <th scope="col" className="pb-2">Role</th>
+                      <th scope="col" className="pb-2">Goal</th>
+                      <th scope="col" className="pb-2 text-right">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-zinc-900/40 text-zinc-300">
@@ -864,14 +865,14 @@ export default function AdminPanelPage() {
                 <button onClick={() => setIsClassModalOpen(true)} className="bg-red-500 hover:bg-red-600 text-white font-black text-[10px] uppercase tracking-widest px-4 py-2 rounded-xl transition-all shadow-lg shadow-red-500/10">+ Add Class</button>
               </div>
               <div className="w-full overflow-x-auto block">
-                <table className="w-full text-left text-xs min-w-[650px]">
+                <table className="w-full text-left text-xs min-w-[650px]" aria-label="Classes">
                   <thead>
                     <tr className="text-[9px] uppercase font-black text-zinc-500 tracking-widest border-b border-zinc-900 pb-3">
-                      <th className="pb-2">Title</th>
-                      <th className="pb-2">Coach</th>
-                      <th className="pb-2">Schedule</th>
-                      <th className="pb-2">Students Count</th>
-                      <th className="pb-2 text-right">Actions</th>
+                      <th scope="col" className="pb-2">Title</th>
+                      <th scope="col" className="pb-2">Coach</th>
+                      <th scope="col" className="pb-2">Schedule</th>
+                      <th scope="col" className="pb-2">Students Count</th>
+                      <th scope="col" className="pb-2 text-right">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-zinc-900/40 text-zinc-300">
@@ -910,13 +911,13 @@ export default function AdminPanelPage() {
                 <button onClick={() => setIsEquipModalOpen(true)} className="bg-red-500 hover:bg-red-600 text-white font-black text-[10px] uppercase tracking-widest px-4 py-2 rounded-xl transition-all shadow-lg shadow-red-500/10">+ Add Equipment</button>
               </div>
               <div className="w-full overflow-x-auto block">
-                <table className="w-full text-left text-xs min-w-[550px]">
+                <table className="w-full text-left text-xs min-w-[550px]" aria-label="Equipment">
                   <thead>
                     <tr className="text-[9px] uppercase font-black text-zinc-500 tracking-widest border-b border-zinc-900 pb-3">
-                      <th className="pb-2">Name</th>
-                      <th className="pb-2">Status</th>
-                      <th className="pb-2">Last Check</th>
-                      <th className="pb-2 text-right">Actions</th>
+                      <th scope="col" className="pb-2">Name</th>
+                      <th scope="col" className="pb-2">Status</th>
+                      <th scope="col" className="pb-2">Last Check</th>
+                      <th scope="col" className="pb-2 text-right">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-zinc-900/40 text-zinc-300">
@@ -952,14 +953,14 @@ export default function AdminPanelPage() {
                 </div>
               </div>
               <div className="w-full overflow-x-auto block">
-                <table className="w-full text-left text-xs min-w-[700px]">
+                <table className="w-full text-left text-xs min-w-[700px]" aria-label="Subscriptions">
                   <thead>
                     <tr className="text-[9px] uppercase font-black text-zinc-500 tracking-widest border-b border-zinc-900 pb-3">
-                      <th className="pb-2">Member</th>
-                      <th className="pb-2">Plan</th>
-                      <th className="pb-2">Status</th>
-                      <th className="pb-2">Expiry</th>
-                      <th className="pb-2 text-right">Actions</th>
+                      <th scope="col" className="pb-2">Member</th>
+                      <th scope="col" className="pb-2">Plan</th>
+                      <th scope="col" className="pb-2">Status</th>
+                      <th scope="col" className="pb-2">Expiry</th>
+                      <th scope="col" className="pb-2 text-right">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-zinc-900/40 text-zinc-300">

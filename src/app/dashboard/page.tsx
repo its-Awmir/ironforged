@@ -581,13 +581,13 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {isMobileMenuOpen && <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-30 lg:hidden no-print" onClick={() => setIsMobileMenuOpen(false)} />}
+      {isMobileMenuOpen && <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-30 lg:hidden no-print" onClick={() => setIsMobileMenuOpen(false)} aria-hidden="true" />}
 
-      <aside className={`w-64 border-r border-zinc-900/60 bg-[#0b0b0e]/95 lg:bg-[#0b0b0e]/80 backdrop-blur-xl p-6 flex flex-col justify-between fixed h-screen z-40 lg:z-30 transition-transform duration-300 ease-in-out no-print ${isMobileMenuOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}`}>
+      <aside aria-label="Dashboard navigation" className={`w-64 border-r border-zinc-900/60 bg-[#0b0b0e]/95 lg:bg-[#0b0b0e]/80 backdrop-blur-xl p-6 flex flex-col justify-between fixed h-screen z-40 lg:z-30 transition-transform duration-300 ease-in-out no-print ${isMobileMenuOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}`}>
         <div>
           <div className="mb-10 pl-2 flex items-center justify-between">
             <Link href="/"><img src="/img/logo.svg" alt="IronForged" className="h-9 hover:opacity-80 transition-opacity" /></Link>
-            <button onClick={() => setIsMobileMenuOpen(false)} className="lg:hidden text-zinc-400 hover:text-white"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg></button>
+            <button onClick={() => setIsMobileMenuOpen(false)} aria-label="Close menu" className="lg:hidden text-zinc-400 hover:text-white"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg></button>
           </div>
           <nav className="space-y-1.5">
             {[
@@ -597,9 +597,10 @@ export default function DashboardPage() {
               { id: "messages", label: "Messages", icon: "messages" },
             ].map((tab) => (
               <button key={tab.id} onClick={() => { setActiveTab(tab.id); setIsMobileMenuOpen(false); }}
+                aria-current={activeTab === tab.id ? "page" : undefined}
                 className={`w-full flex items-center gap-3.5 px-4 py-3 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all relative ${activeTab === tab.id ? "bg-gradient-to-r from-zinc-900 to-zinc-900/50 text-red-500 border border-zinc-800/80 shadow-inner" : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/30"}`}>
-                {activeTab === tab.id && <span className="absolute left-0 w-[3px] h-5 bg-red-500 rounded-r-full shadow-[0_0_10px_rgba(239,68,68,0.7)]" />}
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                {activeTab === tab.id && <span className="absolute left-0 w-[3px] h-5 bg-red-500 rounded-r-full shadow-[0_0_10px_rgba(239,68,68,0.7)]" aria-hidden="true" />}
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true">
                   {tab.icon === "overview" && <><rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" /><rect x="14" y="14" width="7" height="7" /><rect x="3" y="14" width="7" height="7" /></>}
                   {tab.icon === "workouts" && <><path d="M6.5 6.5 11 11M13 13l4.5 4.5" /><path d="M11 11 8 8a2.83 2.83 0 0 1 0-4l4-4 4 4-4 4" /><path d="m13 13 3 3a2.83 2.83 0 0 1 0 4l-4 4-4-4 4-4" /></>}
                   {tab.icon === "attendance" && <><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><polyline points="16 11 18 13 22 9" /></>}
@@ -611,7 +612,7 @@ export default function DashboardPage() {
           </nav>
         </div>
         <div className="border-t border-zinc-900/60 pt-4">
-          <button onClick={handleLogout} className="w-full text-left text-zinc-500 hover:text-red-400 font-bold text-[11px] uppercase tracking-wider px-4 py-2 rounded-xl transition-colors">Log Out</button>
+          <button onClick={handleLogout} aria-label="Log out" className="w-full text-left text-zinc-500 hover:text-red-400 font-bold text-[11px] uppercase tracking-wider px-4 py-2 rounded-xl transition-colors">Log Out</button>
         </div>
       </aside>
 
@@ -619,8 +620,8 @@ export default function DashboardPage() {
         <header className="px-4 lg:px-8 pt-6 lg:pt-8 pb-4 border-b border-zinc-900/30 no-print">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <button onClick={() => setIsMobileMenuOpen(true)} className="lg:hidden p-2 bg-zinc-900 border border-zinc-800 rounded-xl text-zinc-300 hover:text-white transition-colors">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="18" x2="21" y2="18" /></svg>
+              <button onClick={() => setIsMobileMenuOpen(true)} aria-label="Open menu" className="lg:hidden p-2 bg-zinc-900 border border-zinc-800 rounded-xl text-zinc-300 hover:text-white transition-colors">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true"><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="18" x2="21" y2="18" /></svg>
               </button>
               <div>
                 <h1 className="text-lg lg:text-2xl font-black uppercase tracking-wider text-white">
@@ -783,8 +784,8 @@ export default function DashboardPage() {
                   <div className="premium-glow-card rounded-2xl p-4 lg:p-6 space-y-3">
                     <h2 className="text-xs font-black text-white uppercase tracking-widest border-b border-zinc-900/60 pb-3">MY CLASSES</h2>
                     <div className="w-full overflow-x-auto block">
-                      <table className="w-full text-left text-xs min-w-[500px]">
-                        <thead><tr className="text-[9px] uppercase font-black text-zinc-500 tracking-widest border-b border-zinc-900 pb-3"><th className="pb-2">Class</th><th className="pb-2">Instructor</th><th className="pb-2">Schedule</th><th className="pb-2">Status</th></tr></thead>
+                      <table className="w-full text-left text-xs min-w-[500px]" aria-label="My classes">
+                        <thead><tr className="text-[9px] uppercase font-black text-zinc-500 tracking-widest border-b border-zinc-900 pb-3"><th scope="col" className="pb-2">Class</th><th scope="col" className="pb-2">Instructor</th><th scope="col" className="pb-2">Schedule</th><th scope="col" className="pb-2">Status</th></tr></thead>
                         <tbody className="divide-y divide-zinc-900/40 text-zinc-300">
                           {isClassesLoading ? <SkeletonTableRows rows={4} cols={4} /> : classes.length > 0 ? classes.map((c) => (
                             <tr key={c.id} className="hover:bg-zinc-900/10 transition-colors"><td className="py-3 font-black text-white">{c.title}</td><td className="py-3 text-zinc-400">{c.coach}</td><td className="py-3 text-zinc-400">{c.time}</td><td className="py-3"><span className="text-[9px] bg-emerald-500/10 text-emerald-400 px-2 py-0.5 rounded border border-emerald-500/20 font-black uppercase tracking-wider">ENROLLED</span></td></tr>
@@ -951,8 +952,8 @@ export default function DashboardPage() {
                 <span className="text-[10px] bg-zinc-900/80 px-3 py-1 rounded-full font-bold text-zinc-400">{attendanceRecords.length} RECORDS</span>
               </div>
               <div className="w-full overflow-x-auto block">
-                <table className="w-full text-left text-xs min-w-[500px]">
-                  <thead><tr className="text-[9px] uppercase font-black text-zinc-500 tracking-widest border-b border-zinc-900 pb-3"><th className="pb-2">Date</th><th className="pb-2">Class</th><th className="pb-2">Status</th></tr></thead>
+                <table className="w-full text-left text-xs min-w-[500px]" aria-label="Attendance log">
+                  <thead><tr className="text-[9px] uppercase font-black text-zinc-500 tracking-widest border-b border-zinc-900 pb-3"><th scope="col" className="pb-2">Date</th><th scope="col" className="pb-2">Class</th><th scope="col" className="pb-2">Status</th></tr></thead>
                   <tbody className="divide-y divide-zinc-900/40 text-zinc-300">
                     {isAttendanceLoading ? <SkeletonTableRows rows={5} cols={3} /> : attendanceRecords.length > 0 ? attendanceRecords.map((record) => {
                       const cfg = statusConfig[record.status] || statusConfig.ABSENT;
