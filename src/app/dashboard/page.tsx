@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ToastContainer, showToast } from "@/components/Toast";
@@ -10,6 +10,7 @@ import { SkeletonFullPage, SkeletonCard, SkeletonTableRows, SkeletonChatBubble }
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 import { X, Check, Download } from "lucide-react";
 import { useCyberpunkPDF } from "@/hooks/useCyberpunkPDF";
+import ThemeToggle from "@/components/ThemeToggle";
 
 interface UserData {
   id: string;
@@ -123,6 +124,7 @@ function RadialProgress({ value, max, color, label, unit }: { value: number; max
 
 export default function DashboardPage() {
   const router = useRouter();
+  const [isMounted, setIsMounted] = useState(false);
   const [user, setUser] = useState<UserData | null>(null);
   const [activeTab, setActiveTab] = useState("overview");
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -162,7 +164,7 @@ export default function DashboardPage() {
 
   const [showWeightModal, setShowWeightModal] = useState(false);
   const [weightInput, setWeightInput] = useState("");
-  const [weightDate, setWeightDate] = useState(new Date().toISOString().split("T")[0]);
+  const [weightDate, setWeightDate] = useState("");
   const [isSavingWeight, setIsSavingWeight] = useState(false);
 
   const [showPaymentModal, setShowPaymentModal] = useState(false);
@@ -177,27 +179,29 @@ export default function DashboardPage() {
   const [recipientResult, setRecipientResult] = useState<{ status: "idle" | "valid" | "invalid"; name?: string }>({ status: "idle" });
 
   const { exportPDF, isGenerating: isPDFGenerating } = useCyberpunkPDF();
+  const didInitialFetchRef = useRef(false);
 
   useEffect(() => {
-    const isLoggedIn = localStorage.getItem("isLoggedIn") === "true";
-    const currentUserRaw = localStorage.getItem("currentUser");
+    setIsMounted(true);
+    const raw = localStorage.getItem("currentUser");
+    if (raw) {
+      try { setUser(JSON.parse(raw) as UserData); } catch { setUser(null); }
+    }
+    setWeightDate(new Date().toISOString().split("T")[0]);
+  }, []);
 
-    if (!isLoggedIn || !currentUserRaw) {
+  useEffect(() => {
+    if (!isMounted) return;
+    const isLoggedIn = localStorage.getItem("isLoggedIn") === "true";
+    if (!isLoggedIn) {
       router.replace("/login");
       return;
     }
 
-    try {
-      const userData: UserData = JSON.parse(currentUserRaw);
-      const role = (userData.role || "").trim().toLowerCase();
-      if (role === "admin") { router.replace("/admin-panel"); return; }
-      if (role === "coach") { router.replace("/coach-dashboard"); return; }
-      setUser(userData);
-    } catch {
-      localStorage.clear();
-      router.replace("/login");
-    }
-  }, [router]);
+    const role = (user?.role || "").trim().toLowerCase();
+    if (role === "admin") { router.replace("/admin-panel"); return; }
+    if (role === "coach") { router.replace("/coach-dashboard"); return; }
+  }, [router, user]);
 
   const fetchProfile = useCallback(async () => {
     try {
@@ -311,13 +315,15 @@ export default function DashboardPage() {
   }, []);
 
   useEffect(() => {
-    if (!user) return;
+    if (!user || didInitialFetchRef.current) return;
+    didInitialFetchRef.current = true;
     setIsLoadingData(true);
     Promise.all([
       fetchProfile(), fetchClasses(), fetchMessages(), fetchWorkouts(), fetchAttendance(),
       fetchWeightHistory(), fetchMacros(), fetchStreak(), fetchSubscription(),
     ]).finally(() => setIsLoadingData(false));
-  }, [user, fetchProfile, fetchClasses, fetchMessages, fetchWorkouts, fetchAttendance, fetchWeightHistory, fetchMacros, fetchStreak, fetchSubscription]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
 
   const submitProfile = async () => {
     const { weight, height, age, goal } = profileForm;
@@ -530,7 +536,16 @@ export default function DashboardPage() {
   ];
 
   const subEndDate = subscription.endDate ? new Date(subscription.endDate) : null;
-  const subDaysLeft = subEndDate ? Math.max(0, Math.ceil((subEndDate.getTime() - Date.now()) / 86400000)) : 0;
+  const [subDaysLeft, setSubDaysLeft] = useState(0);
+
+  useEffect(() => {
+    if (subscription.endDate) {
+      const end = new Date(subscription.endDate);
+      setSubDaysLeft(Math.max(0, Math.ceil((end.getTime() - Date.now()) / 86400000)));
+    } else {
+      setSubDaysLeft(0);
+    }
+  }, [subscription.endDate]);
 
   if (!user) return <SkeletonFullPage message="Loading Dashboard..." />;
 
@@ -547,13 +562,13 @@ export default function DashboardPage() {
   const allWorkouts = [...individualWorkouts, ...groupWorkouts];
 
   return (
-    <div className="min-h-screen bg-[#070709] text-[#f4f4f5] flex font-sans overflow-x-hidden antialiased selection:bg-red-500 selection:text-white relative print-layout">
+    <div className="dash-root min-h-screen bg-[var(--dash-bg)] text-[var(--dash-text)] flex font-sans overflow-x-hidden antialiased selection:bg-red-500 selection:text-white relative print-layout">
 
       <div className="fixed top-[-10%] right-[-10%] w-[500px] h-[500px] bg-red-900/10 rounded-full blur-[160px] pointer-events-none z-0 no-print" />
 
       {!profileComplete && (
         <div className="fixed inset-0 bg-black/90 backdrop-blur-md z-[100] flex items-center justify-center p-4">
-          <div className="bg-[#0b0b0e] border border-zinc-800 rounded-2xl p-6 lg:p-8 w-full max-w-md space-y-5 animate-fadeIn">
+          <div className="bg-[var(--dash-panel)] border border-[var(--dash-border)] rounded-2xl p-6 lg:p-8 w-full max-w-md space-y-5 animate-fadeIn">
             <div className="text-center space-y-2">
               <div className="w-16 h-16 mx-auto rounded-full bg-red-500/10 border border-red-500/20 flex items-center justify-center">
                 <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-red-400"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
@@ -563,12 +578,12 @@ export default function DashboardPage() {
             </div>
             <div className="space-y-3">
               <div className="grid grid-cols-2 gap-3">
-                <div><label className="text-[10px] font-bold text-zinc-500 uppercase block mb-1">Weight (kg)</label><input type="number" value={profileForm.weight} onChange={(e) => setProfileForm({ ...profileForm, weight: e.target.value })} className="w-full bg-[#121216] border border-zinc-800 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-red-500" placeholder="75" /></div>
-                <div><label className="text-[10px] font-bold text-zinc-500 uppercase block mb-1">Height (cm)</label><input type="number" value={profileForm.height} onChange={(e) => setProfileForm({ ...profileForm, height: e.target.value })} className="w-full bg-[#121216] border border-zinc-800 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-red-500" placeholder="175" /></div>
+                <div><label className="text-[10px] font-bold text-zinc-500 uppercase block mb-1">Weight (kg)</label><input type="number" value={profileForm.weight} onChange={(e) => setProfileForm({ ...profileForm, weight: e.target.value })} className="w-full bg-[var(--dash-field)] border border-[var(--dash-border)] rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-red-500" placeholder="75" /></div>
+                <div><label className="text-[10px] font-bold text-zinc-500 uppercase block mb-1">Height (cm)</label><input type="number" value={profileForm.height} onChange={(e) => setProfileForm({ ...profileForm, height: e.target.value })} className="w-full bg-[var(--dash-field)] border border-[var(--dash-border)] rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-red-500" placeholder="175" /></div>
               </div>
-              <div><label className="text-[10px] font-bold text-zinc-500 uppercase block mb-1">Age</label><input type="number" value={profileForm.age} onChange={(e) => setProfileForm({ ...profileForm, age: e.target.value })} className="w-full bg-[#121216] border border-zinc-800 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-red-500" placeholder="25" /></div>
+              <div><label className="text-[10px] font-bold text-zinc-500 uppercase block mb-1">Age</label><input type="number" value={profileForm.age} onChange={(e) => setProfileForm({ ...profileForm, age: e.target.value })} className="w-full bg-[var(--dash-field)] border border-[var(--dash-border)] rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-red-500" placeholder="25" /></div>
               <div><label className="text-[10px] font-bold text-zinc-500 uppercase block mb-1">Fitness Goal</label>
-                <select value={profileForm.goal} onChange={(e) => setProfileForm({ ...profileForm, goal: e.target.value })} className="select-dark w-full bg-[#121216] border border-zinc-800 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-transparent">
+                <select value={profileForm.goal} onChange={(e) => setProfileForm({ ...profileForm, goal: e.target.value })} className="select-dark w-full bg-[var(--dash-field)] border border-[var(--dash-border)] rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-transparent">
                   <option value="">Select your goal</option>
                   <option value="Lose Weight">Lose Weight</option><option value="Build Muscle">Build Muscle</option><option value="Improve Endurance">Improve Endurance</option><option value="General Fitness">General Fitness</option><option value="Athletic Performance">Athletic Performance</option><option value="Rehabilitation">Rehabilitation</option>
                 </select>
@@ -583,10 +598,13 @@ export default function DashboardPage() {
 
       {isMobileMenuOpen && <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-30 lg:hidden no-print" onClick={() => setIsMobileMenuOpen(false)} aria-hidden="true" />}
 
-      <aside aria-label="Dashboard navigation" className={`w-64 border-r border-zinc-900/60 bg-[#0b0b0e]/95 lg:bg-[#0b0b0e]/80 backdrop-blur-xl p-6 flex flex-col justify-between fixed h-screen z-40 lg:z-30 transition-transform duration-300 ease-in-out no-print ${isMobileMenuOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}`}>
+      <aside aria-label="Dashboard navigation" className={`w-64 border-r border-[var(--dash-divider)] bg-[var(--dash-panel)]/95 lg:bg-[var(--dash-panel)]/80 backdrop-blur-xl p-6 flex flex-col justify-between fixed h-screen z-40 lg:z-30 transition-transform duration-300 ease-in-out no-print ${isMobileMenuOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}`}>
         <div>
           <div className="mb-10 pl-2 flex items-center justify-between">
-            <Link href="/"><img src="/img/logo.svg" alt="IronForged" className="h-9 hover:opacity-80 transition-opacity" /></Link>
+            <Link href="/">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/img/logo.svg" alt="IronForged" className="h-9 hover:opacity-80 transition-opacity" />
+            </Link>
             <button onClick={() => setIsMobileMenuOpen(false)} aria-label="Close menu" className="lg:hidden text-zinc-400 hover:text-white"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg></button>
           </div>
           <nav className="space-y-1.5">
@@ -598,7 +616,7 @@ export default function DashboardPage() {
             ].map((tab) => (
               <button key={tab.id} onClick={() => { setActiveTab(tab.id); setIsMobileMenuOpen(false); }}
                 aria-current={activeTab === tab.id ? "page" : undefined}
-                className={`w-full flex items-center gap-3.5 px-4 py-3 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all relative ${activeTab === tab.id ? "bg-gradient-to-r from-zinc-900 to-zinc-900/50 text-red-500 border border-zinc-800/80 shadow-inner" : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/30"}`}>
+                className={`w-full flex items-center gap-3.5 px-4 py-3 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all relative ${activeTab === tab.id ? "bg-gradient-to-r from-zinc-900 to-zinc-900/50 text-red-500 border border-[var(--dash-border)] shadow-inner" : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/30"}`}>
                 {activeTab === tab.id && <span className="absolute left-0 w-[3px] h-5 bg-red-500 rounded-r-full shadow-[0_0_10px_rgba(239,68,68,0.7)]" aria-hidden="true" />}
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true">
                   {tab.icon === "overview" && <><rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" /><rect x="14" y="14" width="7" height="7" /><rect x="3" y="14" width="7" height="7" /></>}
@@ -611,16 +629,16 @@ export default function DashboardPage() {
             ))}
           </nav>
         </div>
-        <div className="border-t border-zinc-900/60 pt-4">
+        <div className="border-t border-[var(--dash-divider)] pt-4">
           <button onClick={handleLogout} aria-label="Log out" className="w-full text-left text-zinc-500 hover:text-red-400 font-bold text-[11px] uppercase tracking-wider px-4 py-2 rounded-xl transition-colors">Log Out</button>
         </div>
       </aside>
 
       <main className="flex-1 w-full lg:pl-64 min-h-screen flex flex-col z-10 relative">
-        <header className="px-4 lg:px-8 pt-6 lg:pt-8 pb-4 border-b border-zinc-900/30 no-print">
+        <header className="px-4 lg:px-8 pt-6 lg:pt-8 pb-4 border-b border-[var(--dash-divider)] no-print">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <button onClick={() => setIsMobileMenuOpen(true)} aria-label="Open menu" className="lg:hidden p-2 bg-zinc-900 border border-zinc-800 rounded-xl text-zinc-300 hover:text-white transition-colors">
+              <button onClick={() => setIsMobileMenuOpen(true)} aria-label="Open menu" className="lg:hidden p-2 bg-zinc-900 border border-[var(--dash-border)] rounded-xl text-zinc-300 hover:text-white transition-colors">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true"><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="18" x2="21" y2="18" /></svg>
               </button>
               <div>
@@ -635,8 +653,11 @@ export default function DashboardPage() {
                 <p className="text-[9px] lg:text-[10px] text-zinc-500 font-bold uppercase tracking-widest mt-0.5">YOUR FITNESS DASHBOARD</p>
               </div>
             </div>
-            <div className="bg-emerald-500/10 border border-emerald-500/20 text-[8px] lg:text-[9px] font-black tracking-widest text-emerald-400 uppercase px-2.5 py-1.5 rounded-xl">
-              ACTIVE
+            <div className="flex items-center gap-3">
+              <ThemeToggle />
+              <div className="bg-emerald-500/10 border border-emerald-500/20 text-[8px] lg:text-[9px] font-black tracking-widest text-emerald-400 uppercase px-2.5 py-1.5 rounded-xl">
+                ACTIVE
+              </div>
             </div>
           </div>
         </header>
@@ -687,90 +708,90 @@ export default function DashboardPage() {
                   )}
 
                   {/* Weight Progress Chart + Nutrition wrapper for PDF */}
-                  <div id="progress-report-container" className="space-y-6" style={{ backgroundColor: "#070709", color: "#f4f4f5" }}>
-                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                    <div className="lg:col-span-2 premium-glow-card rounded-2xl p-4 lg:p-6 space-y-3">
-                      <div className="flex justify-between items-center border-b border-zinc-900/60 pb-3">
-                        <h2 className="text-xs font-black text-white uppercase tracking-widest">WEIGHT PROGRESS</h2>
-                        <div className="flex items-center gap-2 no-print">
-                          <button onClick={() => exportPDF("progress-report-container", { filename: `${(user?.name || "Member").replace(/\s+/g, "-")}-Progress-Report` })} disabled={isPDFGenerating} className="text-[9px] font-black text-purple-400 bg-purple-500/10 border border-purple-500/20 px-3 py-1 rounded-lg hover:bg-purple-500/20 transition-colors flex items-center gap-1.5 disabled:opacity-50">
-                            {isPDFGenerating ? <Spinner /> : <Download size={11} />}
-                            {isPDFGenerating ? "Exporting..." : "Download PDF"}
-                          </button>
-                          <button onClick={() => { setWeightInput(profileForm.weight || ""); setWeightDate(new Date().toISOString().split("T")[0]); setShowWeightModal(true); }} className="text-[9px] font-black text-red-400 bg-red-500/10 border border-red-500/20 px-3 py-1 rounded-lg hover:bg-red-500/20 transition-colors">Log Weight</button>
-                        </div>
-                      </div>
-                      {isWeightLoading ? (
-                        <div className="h-48 bg-zinc-800/30 animate-pulse rounded-xl" />
-                      ) : chartData.length > 1 ? (
-                        <div className="h-48">
-                          <ResponsiveContainer width="100%" height="100%">
-                            <LineChart data={chartData}>
-                              <XAxis dataKey="date" tick={{ fontSize: 9, fill: "#71717a" }} axisLine={false} tickLine={false} />
-                              <YAxis tick={{ fontSize: 9, fill: "#71717a" }} axisLine={false} tickLine={false} domain={["dataMin - 2", "dataMax + 2"]} width={35} />
-                              <Tooltip contentStyle={{ backgroundColor: "#121216", border: "1px solid #27272a", borderRadius: 12, fontSize: 11, color: "#f4f4f5" }} labelStyle={{ color: "#a1a1aa" }} />
-                              <Line type="monotone" dataKey="weight" stroke="#ef4444" strokeWidth={2.5} dot={{ fill: "#ef4444", r: 3, strokeWidth: 0 }} activeDot={{ r: 5, strokeWidth: 2, stroke: "#070709" }} isAnimationActive={false} />
-                            </LineChart>
-                          </ResponsiveContainer>
-                        </div>
-                      ) : (
-                        <div className="h-48 flex items-center justify-center text-xs text-zinc-600">Log at least 2 weight entries to see your progress chart.</div>
-                      )}
-                    </div>
-
-                    <div className="premium-glow-card rounded-2xl p-4 lg:p-6 space-y-3">
-                      <h2 className="text-xs font-black text-white uppercase tracking-widest border-b border-zinc-900/60 pb-3">GOAL PROGRESS</h2>
-                      {isWeightLoading ? (
-                        <div className="h-48 bg-zinc-800/30 animate-pulse rounded-xl" />
-                      ) : (
-                        <div className="h-48 flex flex-col items-center justify-center">
-                          <ResponsiveContainer width={140} height={140}>
-                            <PieChart>
-                              <Pie data={donutData} cx="50%" cy="50%" innerRadius={42} outerRadius={58} dataKey="value" startAngle={90} endAngle={-270} strokeWidth={0} isAnimationActive={false}>
-                                <Cell fill="#ef4444" />
-                                <Cell fill="#27272a" />
-                              </Pie>
-                            </PieChart>
-                          </ResponsiveContainer>
-                          <div className="text-center -mt-2">
-                            <div className="text-xl font-black text-white">{goalProgress}%</div>
-                            <div className="text-[9px] text-zinc-500 font-bold">to goal ({goalWeight}kg)</div>
+                  <div id="progress-report-container" className="space-y-6" style={{ backgroundColor: "var(--dash-bg)", color: "var(--dash-text)" }}>
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                      <div className="lg:col-span-2 premium-glow-card rounded-2xl p-4 lg:p-6 space-y-3">
+                        <div className="flex justify-between items-center border-b border-[var(--dash-divider)] pb-3">
+                          <h2 className="text-xs font-black text-white uppercase tracking-widest">WEIGHT PROGRESS</h2>
+                          <div className="flex items-center gap-2 no-print">
+                            <button onClick={() => exportPDF("progress-report-container", { filename: `${(user?.name || "Member").replace(/\s+/g, "-")}-Progress-Report` })} disabled={isPDFGenerating} className="text-[9px] font-black text-purple-400 bg-purple-500/10 border border-purple-500/20 px-3 py-1 rounded-lg hover:bg-purple-500/20 transition-colors flex items-center gap-1.5 disabled:opacity-50">
+                              {isPDFGenerating ? <Spinner /> : <Download size={11} />}
+                              {isPDFGenerating ? "Exporting..." : "Download PDF"}
+                            </button>
+                            <button onClick={() => { setWeightInput(profileForm.weight || ""); setWeightDate(new Date().toISOString().split("T")[0]); setShowWeightModal(true); }} className="text-[9px] font-black text-red-400 bg-red-500/10 border border-red-500/20 px-3 py-1 rounded-lg hover:bg-red-500/20 transition-colors">Log Weight</button>
                           </div>
                         </div>
+                        {isWeightLoading ? (
+                          <div className="h-48 bg-zinc-800/30 animate-pulse rounded-xl" />
+                        ) : chartData.length > 1 ? (
+                          <div className="h-48">
+                            <ResponsiveContainer width="100%" height="100%">
+                              <LineChart data={chartData}>
+                                <XAxis dataKey="date" tick={{ fontSize: 9, fill: "#71717a" }} axisLine={false} tickLine={false} />
+                                <YAxis tick={{ fontSize: 9, fill: "#71717a" }} axisLine={false} tickLine={false} domain={["dataMin - 2", "dataMax + 2"]} width={35} />
+                                <Tooltip contentStyle={{ backgroundColor: "#121216", border: "1px solid #27272a", borderRadius: 12, fontSize: 11, color: "#f4f4f5" }} labelStyle={{ color: "#a1a1aa" }} />
+                                <Line type="monotone" dataKey="weight" stroke="#ef4444" strokeWidth={2.5} dot={{ fill: "#ef4444", r: 3, strokeWidth: 0 }} activeDot={{ r: 5, strokeWidth: 2, stroke: "#070709" }} isAnimationActive={false} />
+                              </LineChart>
+                            </ResponsiveContainer>
+                          </div>
+                        ) : (
+                          <div className="h-48 flex items-center justify-center text-xs text-zinc-600">Log at least 2 weight entries to see your progress chart.</div>
+                        )}
+                      </div>
+
+                      <div className="premium-glow-card rounded-2xl p-4 lg:p-6 space-y-3">
+                        <h2 className="text-xs font-black text-white uppercase tracking-widest border-b border-[var(--dash-divider)] pb-3">GOAL PROGRESS</h2>
+                        {isWeightLoading ? (
+                          <div className="h-48 bg-zinc-800/30 animate-pulse rounded-xl" />
+                        ) : (
+                          <div className="h-48 flex flex-col items-center justify-center">
+                            <ResponsiveContainer width={140} height={140}>
+                              <PieChart>
+                                <Pie data={donutData} cx="50%" cy="50%" innerRadius={42} outerRadius={58} dataKey="value" startAngle={90} endAngle={-270} strokeWidth={0} isAnimationActive={false}>
+                                  <Cell fill="#ef4444" />
+                                  <Cell fill="#27272a" />
+                                </Pie>
+                              </PieChart>
+                            </ResponsiveContainer>
+                            <div className="text-center -mt-2">
+                              <div className="text-xl font-black text-white">{goalProgress}%</div>
+                              <div className="text-[9px] text-zinc-500 font-bold">to goal ({goalWeight}kg)</div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Daily Nutrition */}
+                    <div className="premium-glow-card rounded-2xl p-4 lg:p-6 space-y-4">
+                      <div className="flex justify-between items-center border-b border-[var(--dash-divider)] pb-3">
+                        <h2 className="text-xs font-black text-white uppercase tracking-widest">DAILY NUTRITION</h2>
+                        <button onClick={() => { setMacrosForm({ calories: String(macros.calories || ""), protein: String(macros.protein || ""), carbs: String(macros.carbs || ""), fat: String(macros.fat || "") }); setShowMacrosModal(true); }} className="text-[9px] font-black text-red-400 bg-red-500/10 border border-red-500/20 px-3 py-1 rounded-lg hover:bg-red-500/20 transition-colors no-print">Update</button>
+                      </div>
+                      {isMacrosLoading ? (
+                        <div className="flex justify-center gap-8 py-6">
+                          {Array.from({ length: 4 }).map((_, i) => <div key={i} className="w-24 h-24 bg-zinc-800/30 animate-pulse rounded-full" />)}
+                        </div>
+                      ) : (
+                        <div className="flex flex-wrap justify-center gap-6 lg:gap-10">
+                          <RadialProgress value={macros.calories} max={MACRO_GOALS.calories} color="#ef4444" label="Calories" unit="kcal" />
+                          <RadialProgress value={macros.protein} max={MACRO_GOALS.protein} color="#22d3ee" label="Protein" unit="g" />
+                          <RadialProgress value={macros.carbs} max={MACRO_GOALS.carbs} color="#facc15" label="Carbs" unit="g" />
+                          <RadialProgress value={macros.fat} max={MACRO_GOALS.fat} color="#a78bfa" label="Fat" unit="g" />
+                        </div>
                       )}
                     </div>
-                  </div>
-
-                  {/* Daily Nutrition */}
-                  <div className="premium-glow-card rounded-2xl p-4 lg:p-6 space-y-4">
-                    <div className="flex justify-between items-center border-b border-zinc-900/60 pb-3">
-                      <h2 className="text-xs font-black text-white uppercase tracking-widest">DAILY NUTRITION</h2>
-                      <button onClick={() => { setMacrosForm({ calories: String(macros.calories || ""), protein: String(macros.protein || ""), carbs: String(macros.carbs || ""), fat: String(macros.fat || "") }); setShowMacrosModal(true); }} className="text-[9px] font-black text-red-400 bg-red-500/10 border border-red-500/20 px-3 py-1 rounded-lg hover:bg-red-500/20 transition-colors no-print">Update</button>
-                    </div>
-                    {isMacrosLoading ? (
-                      <div className="flex justify-center gap-8 py-6">
-                        {Array.from({ length: 4 }).map((_, i) => <div key={i} className="w-24 h-24 bg-zinc-800/30 animate-pulse rounded-full" />)}
-                      </div>
-                    ) : (
-                      <div className="flex flex-wrap justify-center gap-6 lg:gap-10">
-                        <RadialProgress value={macros.calories} max={MACRO_GOALS.calories} color="#ef4444" label="Calories" unit="kcal" />
-                        <RadialProgress value={macros.protein} max={MACRO_GOALS.protein} color="#22d3ee" label="Protein" unit="g" />
-                        <RadialProgress value={macros.carbs} max={MACRO_GOALS.carbs} color="#facc15" label="Carbs" unit="g" />
-                        <RadialProgress value={macros.fat} max={MACRO_GOALS.fat} color="#a78bfa" label="Fat" unit="g" />
-                      </div>
-                    )}
-                  </div>
                   </div>
 
                   {/* Gift a Friend */}
                   <div onMouseMove={(e) => { const c = e.currentTarget; const r = c.getBoundingClientRect(); c.style.setProperty("--mx", `${((e.clientX - r.left) / r.width) * 100}%`); c.style.setProperty("--my", `${((e.clientY - r.top) / r.height) * 100}%`); }} className="premium-glow-card rounded-2xl p-4 lg:p-6 space-y-4">
-                    <h2 className="text-xs font-black text-white uppercase tracking-widest border-b border-zinc-900/60 pb-3">UPDATE PHYSICAL METRICS</h2>
+                    <h2 className="text-xs font-black text-white uppercase tracking-widest border-b border-[var(--dash-divider)] pb-3">UPDATE PHYSICAL METRICS</h2>
                     <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-                      <div className="space-y-1"><label className="text-[9px] font-black text-zinc-500 uppercase tracking-widest">Weight (kg)</label><input type="number" value={profileForm.weight} onChange={(e) => setProfileForm({ ...profileForm, weight: e.target.value })} className="w-full bg-[#121216] border border-zinc-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-red-500" placeholder="75" /></div>
-                      <div className="space-y-1"><label className="text-[9px] font-black text-zinc-500 uppercase tracking-widest">Height (cm)</label><input type="number" value={profileForm.height} onChange={(e) => setProfileForm({ ...profileForm, height: e.target.value })} className="w-full bg-[#121216] border border-zinc-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-red-500" placeholder="175" /></div>
-                      <div className="space-y-1"><label className="text-[9px] font-black text-zinc-500 uppercase tracking-widest">Age</label><input type="number" value={profileForm.age} onChange={(e) => setProfileForm({ ...profileForm, age: e.target.value })} className="w-full bg-[#121216] border border-zinc-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-red-500" placeholder="25" /></div>
+                      <div className="space-y-1"><label className="text-[9px] font-black text-zinc-500 uppercase tracking-widest">Weight (kg)</label><input type="number" value={profileForm.weight} onChange={(e) => setProfileForm({ ...profileForm, weight: e.target.value })} className="w-full bg-[var(--dash-field)] border border-[var(--dash-border)] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-red-500" placeholder="75" /></div>
+                      <div className="space-y-1"><label className="text-[9px] font-black text-zinc-500 uppercase tracking-widest">Height (cm)</label><input type="number" value={profileForm.height} onChange={(e) => setProfileForm({ ...profileForm, height: e.target.value })} className="w-full bg-[var(--dash-field)] border border-[var(--dash-border)] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-red-500" placeholder="175" /></div>
+                      <div className="space-y-1"><label className="text-[9px] font-black text-zinc-500 uppercase tracking-widest">Age</label><input type="number" value={profileForm.age} onChange={(e) => setProfileForm({ ...profileForm, age: e.target.value })} className="w-full bg-[var(--dash-field)] border border-[var(--dash-border)] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-red-500" placeholder="25" /></div>
                       <div className="space-y-1"><label className="text-[9px] font-black text-zinc-500 uppercase tracking-widest">Fitness Goal</label>
-                        <select value={profileForm.goal} onChange={(e) => setProfileForm({ ...profileForm, goal: e.target.value })} className="select-dark w-full bg-[#121216] border border-zinc-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-transparent">
+                        <select value={profileForm.goal} onChange={(e) => setProfileForm({ ...profileForm, goal: e.target.value })} className="select-dark w-full bg-[var(--dash-field)] border border-[var(--dash-border)] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-transparent">
                           <option value="">Select goal</option>
                           <option value="Lose Weight">Lose Weight</option><option value="Build Muscle">Build Muscle</option><option value="Improve Endurance">Improve Endurance</option><option value="General Fitness">General Fitness</option><option value="Athletic Performance">Athletic Performance</option><option value="Rehabilitation">Rehabilitation</option>
                         </select>
@@ -782,11 +803,11 @@ export default function DashboardPage() {
                   </div>
 
                   <div className="premium-glow-card rounded-2xl p-4 lg:p-6 space-y-3">
-                    <h2 className="text-xs font-black text-white uppercase tracking-widest border-b border-zinc-900/60 pb-3">MY CLASSES</h2>
+                    <h2 className="text-xs font-black text-white uppercase tracking-widest border-b border-[var(--dash-divider)] pb-3">MY CLASSES</h2>
                     <div className="w-full overflow-x-auto block">
                       <table className="w-full text-left text-xs min-w-[500px]" aria-label="My classes">
                         <thead><tr className="text-[9px] uppercase font-black text-zinc-500 tracking-widest border-b border-zinc-900 pb-3"><th scope="col" className="pb-2">Class</th><th scope="col" className="pb-2">Instructor</th><th scope="col" className="pb-2">Schedule</th><th scope="col" className="pb-2">Status</th></tr></thead>
-                        <tbody className="divide-y divide-zinc-900/40 text-zinc-300">
+                        <tbody className="divide-y divide-[var(--dash-divider)] text-zinc-300">
                           {isClassesLoading ? <SkeletonTableRows rows={4} cols={4} /> : classes.length > 0 ? classes.map((c) => (
                             <tr key={c.id} className="hover:bg-zinc-900/10 transition-colors"><td className="py-3 font-black text-white">{c.title}</td><td className="py-3 text-zinc-400">{c.coach}</td><td className="py-3 text-zinc-400">{c.time}</td><td className="py-3"><span className="text-[9px] bg-emerald-500/10 text-emerald-400 px-2 py-0.5 rounded border border-emerald-500/20 font-black uppercase tracking-wider">ENROLLED</span></td></tr>
                           )) : <tr><td colSpan={4} className="py-6 text-center text-zinc-600">No classes enrolled yet.</td></tr>}
@@ -797,7 +818,7 @@ export default function DashboardPage() {
 
                   {/* Gift a Friend */}
                   <div className="premium-glow-card rounded-2xl p-4 lg:p-6 space-y-4">
-                    <div className="border-b border-zinc-900/60 pb-3">
+                    <div className="border-b border-[var(--dash-divider)] pb-3">
                       <h2 className="text-xs font-black text-white uppercase tracking-widest">GIFT A FRIEND</h2>
                       <p className="text-[10px] text-zinc-500 font-bold mt-1">Purchase a subscription plan for another member.</p>
                     </div>
@@ -815,7 +836,7 @@ export default function DashboardPage() {
                               onBlur={(e) => validateRecipientEmail(e.target.value)}
                               placeholder="Enter friend's email address..."
                               disabled={isGiftProcessing}
-                              className="w-full bg-[#121216] border border-cyan-500/30 rounded-xl px-3 py-2.5 text-xs text-white focus:outline-none focus:border-cyan-500 placeholder:text-zinc-700 disabled:opacity-50 transition-colors"
+                              className="w-full bg-[var(--dash-field)] border border-cyan-500/30 rounded-xl px-3 py-2.5 text-xs text-white focus:outline-none focus:border-cyan-500 placeholder:text-zinc-700 disabled:opacity-50 transition-colors"
                             />
                             {recipientValidating && (
                               <div className="absolute right-3 top-1/2 -translate-y-1/2"><Spinner /></div>
@@ -841,7 +862,7 @@ export default function DashboardPage() {
                             value={giftForm.planType}
                             onChange={(e) => setGiftForm(f => ({ ...f, planType: e.target.value }))}
                             disabled={isGiftProcessing}
-                            className="select-dark w-full bg-[#121216] border border-zinc-800 rounded-xl px-3 py-2.5 text-xs text-white focus:outline-none focus:border-transparent disabled:opacity-50"
+                            className="select-dark w-full bg-[var(--dash-field)] border border-[var(--dash-border)] rounded-xl px-3 py-2.5 text-xs text-white focus:outline-none focus:border-transparent disabled:opacity-50"
                           >
                             <option value="DAILY">Daily Pass (1 day) — $1.99</option>
                             <option value="WEEKLY">Weekly Pass (7 days) — $9.99</option>
@@ -858,22 +879,22 @@ export default function DashboardPage() {
                           <label className="text-[10px] font-bold text-zinc-500 uppercase block mb-2">Add-ons</label>
                           <div className="space-y-2">
                             <button onClick={() => setGiftForm(f => ({ ...f, hasPrivateCoach: !f.hasPrivateCoach }))} disabled={isGiftProcessing}
-                              className={`w-full flex items-center justify-between p-3 rounded-xl border transition-all disabled:opacity-50 ${giftForm.hasPrivateCoach ? "bg-blue-500/10 border-blue-500/50" : "bg-[#121216] border-zinc-800 hover:border-zinc-700"}`}>
+                              className={`w-full flex items-center justify-between p-3 rounded-xl border transition-all disabled:opacity-50 ${giftForm.hasPrivateCoach ? "bg-blue-500/10 border-blue-500/50" : "bg-[var(--dash-field)] border-[var(--dash-border)] hover:border-zinc-700"}`}>
                               <div className="text-left">
                                 <div className="text-xs font-black text-white">Include Private Coach</div>
                                 <div className="text-[10px] text-zinc-500 font-bold">+$50.00</div>
                               </div>
-                              <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all ${giftForm.hasPrivateCoach ? "bg-blue-500 border-blue-500" : "border-zinc-700 bg-[#121216]"}`}>
+                              <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all ${giftForm.hasPrivateCoach ? "bg-blue-500 border-blue-500" : "border-zinc-700 bg-[var(--dash-field)]"}`}>
                                 {giftForm.hasPrivateCoach && <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><polyline points="20 6 9 17 4 12" /></svg>}
                               </div>
                             </button>
                             <button onClick={() => setGiftForm(f => ({ ...f, hasMealPlan: !f.hasMealPlan }))} disabled={isGiftProcessing}
-                              className={`w-full flex items-center justify-between p-3 rounded-xl border transition-all disabled:opacity-50 ${giftForm.hasMealPlan ? "bg-emerald-500/10 border-emerald-500/50" : "bg-[#121216] border-zinc-800 hover:border-zinc-700"}`}>
+                              className={`w-full flex items-center justify-between p-3 rounded-xl border transition-all disabled:opacity-50 ${giftForm.hasMealPlan ? "bg-emerald-500/10 border-emerald-500/50" : "bg-[var(--dash-field)] border-[var(--dash-border)] hover:border-zinc-700"}`}>
                               <div className="text-left">
                                 <div className="text-xs font-black text-white">Include Custom Meal Plan</div>
                                 <div className="text-[10px] text-zinc-500 font-bold">+$20.00</div>
                               </div>
-                              <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all ${giftForm.hasMealPlan ? "bg-emerald-500 border-emerald-500" : "border-zinc-700 bg-[#121216]"}`}>
+                              <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all ${giftForm.hasMealPlan ? "bg-emerald-500 border-emerald-500" : "border-zinc-700 bg-[var(--dash-field)]"}`}>
                                 {giftForm.hasMealPlan && <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><polyline points="20 6 9 17 4 12" /></svg>}
                               </div>
                             </button>
@@ -881,7 +902,7 @@ export default function DashboardPage() {
                         </div>
 
                         {/* Total */}
-                        <div className="bg-[#121216] border border-zinc-800 rounded-xl p-3">
+                        <div className="bg-[var(--dash-field)] border border-[var(--dash-border)] rounded-xl p-3">
                           <div className="flex items-center justify-between">
                             <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Total</span>
                             <span className="text-lg font-black text-amber-400">
@@ -910,7 +931,7 @@ export default function DashboardPage() {
           {activeTab === "workouts" && (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 animate-fadeIn">
               <div className="premium-glow-card rounded-2xl p-4 lg:p-6 space-y-3">
-                <div className="flex justify-between items-center border-b border-zinc-900/60 pb-3">
+                <div className="flex justify-between items-center border-b border-[var(--dash-divider)] pb-3">
                   <h2 className="text-xs font-black text-white uppercase tracking-widest">INDIVIDUAL WORKOUTS</h2>
                   {allWorkouts.length > 0 && (
                     <button onClick={() => exportPDF("workout-printable", { filename: `${(user?.name || "Member").replace(/\s+/g, "-")}-Workouts` })} disabled={isPDFGenerating} className="text-[9px] font-black text-purple-400 bg-purple-500/10 border border-purple-500/20 px-3 py-1 rounded-lg hover:bg-purple-500/20 transition-colors flex items-center gap-1.5 disabled:opacity-50 no-print">
@@ -919,11 +940,11 @@ export default function DashboardPage() {
                     </button>
                   )}
                 </div>
-                <div id="workout-printable" style={{ backgroundColor: "#070709", color: "#f4f4f5" }}>
+                <div id="workout-printable" style={{ backgroundColor: "var(--dash-bg)", color: "var(--dash-text)" }}>
                   {isWorkoutsLoading ? (
-                    <div className="space-y-3">{Array.from({ length: 3 }).map((_, i) => <div key={i} className="bg-[#121216] p-3 rounded-xl border border-zinc-900/60"><div className="h-3.5 w-3/4 bg-zinc-800/60 animate-pulse rounded mb-2" /><div className="h-2.5 w-1/3 bg-zinc-800/60 animate-pulse rounded" /></div>)}</div>
+                    <div className="space-y-3">{Array.from({ length: 3 }).map((_, i) => <div key={i} className="bg-[var(--dash-field)] p-3 rounded-xl border border-[var(--dash-divider)]"><div className="h-3.5 w-3/4 bg-zinc-800/60 animate-pulse rounded mb-2" /><div className="h-2.5 w-1/3 bg-zinc-800/60 animate-pulse rounded" /></div>)}</div>
                   ) : individualWorkouts.length > 0 ? individualWorkouts.map((w) => (
-                    <div key={w.id} className="bg-[#121216] p-3 rounded-xl border border-zinc-900/60 mb-2">
+                    <div key={w.id} className="bg-[var(--dash-field)] p-3 rounded-xl border border-[var(--dash-divider)] mb-2">
                       <div className="text-xs font-bold text-white mb-1">{(w.workoutJson as { exercises?: string[] })?.exercises?.join(" | ") || "No exercises"}</div>
                       <div className="text-[10px] text-zinc-500">{new Date(w.date).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })}</div>
                     </div>
@@ -931,11 +952,11 @@ export default function DashboardPage() {
                 </div>
               </div>
               <div className="premium-glow-card rounded-2xl p-4 lg:p-6 space-y-3">
-                <h2 className="text-xs font-black text-white uppercase tracking-widest border-b border-zinc-900/60 pb-3">CLASS WORKOUTS</h2>
+                <h2 className="text-xs font-black text-white uppercase tracking-widest border-b border-[var(--dash-divider)] pb-3">CLASS WORKOUTS</h2>
                 {isWorkoutsLoading ? (
-                  <div className="space-y-3">{Array.from({ length: 3 }).map((_, i) => <div key={i} className="bg-[#121216] p-3 rounded-xl border border-zinc-900/60"><div className="h-3.5 w-3/4 bg-zinc-800/60 animate-pulse rounded mb-2" /><div className="h-2.5 w-1/3 bg-zinc-800/60 animate-pulse rounded" /></div>)}</div>
+                  <div className="space-y-3">{Array.from({ length: 3 }).map((_, i) => <div key={i} className="bg-[var(--dash-field)] p-3 rounded-xl border border-[var(--dash-divider)]"><div className="h-3.5 w-3/4 bg-zinc-800/60 animate-pulse rounded mb-2" /><div className="h-2.5 w-1/3 bg-zinc-800/60 animate-pulse rounded" /></div>)}</div>
                 ) : groupWorkouts.length > 0 ? groupWorkouts.map((w) => (
-                  <div key={w.id} className="bg-[#121216] p-3 rounded-xl border border-zinc-900/60">
+                  <div key={w.id} className="bg-[var(--dash-field)] p-3 rounded-xl border border-[var(--dash-divider)]">
                     <div className="flex items-center justify-between"><div className="text-xs font-bold text-white">{w.gymClass?.className || "Class"}</div><span className="text-[9px] text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded font-black">GROUP</span></div>
                     <div className="text-xs text-zinc-400 mt-1">{(w.workoutJson as { exercises?: string[] })?.exercises?.join(" | ") || "No exercises"}</div>
                     <div className="text-[10px] text-zinc-500 mt-1">{new Date(w.date).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })}</div>
@@ -947,14 +968,14 @@ export default function DashboardPage() {
 
           {activeTab === "attendance" && (
             <div className="premium-glow-card rounded-2xl p-4 lg:p-6 space-y-3 animate-fadeIn">
-              <div className="flex justify-between items-center border-b border-zinc-900/60 pb-3">
+              <div className="flex justify-between items-center border-b border-[var(--dash-divider)] pb-3">
                 <h2 className="text-xs font-black text-white uppercase tracking-widest">ATTENDANCE LOG</h2>
                 <span className="text-[10px] bg-zinc-900/80 px-3 py-1 rounded-full font-bold text-zinc-400">{attendanceRecords.length} RECORDS</span>
               </div>
               <div className="w-full overflow-x-auto block">
                 <table className="w-full text-left text-xs min-w-[500px]" aria-label="Attendance log">
                   <thead><tr className="text-[9px] uppercase font-black text-zinc-500 tracking-widest border-b border-zinc-900 pb-3"><th scope="col" className="pb-2">Date</th><th scope="col" className="pb-2">Class</th><th scope="col" className="pb-2">Status</th></tr></thead>
-                  <tbody className="divide-y divide-zinc-900/40 text-zinc-300">
+                  <tbody className="divide-y divide-[var(--dash-divider)] text-zinc-300">
                     {isAttendanceLoading ? <SkeletonTableRows rows={5} cols={3} /> : attendanceRecords.length > 0 ? attendanceRecords.map((record) => {
                       const cfg = statusConfig[record.status] || statusConfig.ABSENT;
                       return (
@@ -969,9 +990,9 @@ export default function DashboardPage() {
 
           {activeTab === "messages" && (
             <div className="premium-glow-card rounded-2xl p-4 lg:p-6 space-y-3 animate-fadeIn">
-              <h2 className="text-xs font-black text-white uppercase tracking-widest border-b border-zinc-900/60 pb-3">INBOX</h2>
+              <h2 className="text-xs font-black text-white uppercase tracking-widest border-b border-[var(--dash-divider)] pb-3">INBOX</h2>
               {isMessagesLoading ? <SkeletonChatBubble count={4} /> : (
-                <div className="space-y-1 divide-y divide-zinc-900/60">
+                <div className="space-y-1 divide-y divide-[var(--dash-divider)]">
                   {messages.length > 0 ? messages.map((m) => (
                     <div key={m.id} className="py-3 flex items-center justify-between hover:bg-zinc-900/10 transition-colors rounded-lg px-2">
                       <div className="flex items-center gap-3">
@@ -992,18 +1013,18 @@ export default function DashboardPage() {
       {/* Weight Log Modal */}
       {showWeightModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm animate-fadeIn p-4">
-          <div className="bg-[#0b0b0e] border border-zinc-800 rounded-2xl p-6 w-full max-w-sm space-y-4 shadow-2xl">
+          <div className="bg-[var(--dash-panel)] border border-[var(--dash-border)] rounded-2xl p-6 w-full max-w-sm space-y-4 shadow-2xl">
             <h3 className="text-xs font-black text-white uppercase tracking-widest">Log Weight</h3>
             <div className="space-y-1.5">
               <label className="text-[9px] text-zinc-500 font-bold uppercase tracking-widest">Date</label>
-              <input type="date" value={weightDate} onChange={(e) => setWeightDate(e.target.value)} max={new Date().toISOString().split("T")[0]} className="w-full bg-[#121216] border border-zinc-800 rounded-xl px-3 py-2 text-xs font-bold text-white focus:border-red-500/50 focus:ring-1 focus:ring-red-500/50 outline-none" />
+              <input type="date" value={weightDate} onChange={(e) => setWeightDate(e.target.value)} max={new Date().toISOString().split("T")[0]} className="w-full bg-[var(--dash-field)] border border-[var(--dash-border)] rounded-xl px-3 py-2 text-xs font-bold text-white focus:border-red-500/50 focus:ring-1 focus:ring-red-500/50 outline-none" />
             </div>
             <div className="space-y-1.5">
               <label className="text-[9px] text-zinc-500 font-bold uppercase tracking-widest">Weight (kg)</label>
-              <input type="number" step="0.1" value={weightInput} onChange={(e) => setWeightInput(e.target.value)} placeholder="e.g. 78.5" className="w-full bg-[#121216] border border-zinc-800 rounded-xl px-3 py-2 text-xs font-bold text-white focus:border-red-500/50 focus:ring-1 focus:ring-red-500/50 outline-none" />
+              <input type="number" step="0.1" value={weightInput} onChange={(e) => setWeightInput(e.target.value)} placeholder="e.g. 78.5" className="w-full bg-[var(--dash-field)] border border-[var(--dash-border)] rounded-xl px-3 py-2 text-xs font-bold text-white focus:border-red-500/50 focus:ring-1 focus:ring-red-500/50 outline-none" />
             </div>
             <div className="flex gap-3 pt-2">
-              <button onClick={() => setShowWeightModal(false)} className="flex-1 py-2 bg-[#121216] border border-zinc-800 rounded-xl font-bold text-[10px] text-zinc-400 hover:text-white transition-colors">Cancel</button>
+              <button onClick={() => setShowWeightModal(false)} className="flex-1 py-2 bg-[var(--dash-field)] border border-[var(--dash-border)] rounded-xl font-bold text-[10px] text-zinc-400 hover:text-white transition-colors">Cancel</button>
               <button onClick={saveWeight} disabled={isSavingWeight} className="flex-1 py-2 bg-red-500 rounded-xl font-black text-[10px] uppercase tracking-wider hover:bg-red-600 transition-colors text-white disabled:opacity-50 flex items-center justify-center gap-2">{isSavingWeight && <Spinner />}{isSavingWeight ? "Saving..." : "Save"}</button>
             </div>
           </div>
@@ -1013,16 +1034,16 @@ export default function DashboardPage() {
       {/* Macros Modal */}
       {showMacrosModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm animate-fadeIn p-4">
-          <div className="bg-[#0b0b0e] border border-zinc-800 rounded-2xl p-6 w-full max-w-sm space-y-4 shadow-2xl">
+          <div className="bg-[var(--dash-panel)] border border-[var(--dash-border)] rounded-2xl p-6 w-full max-w-sm space-y-4 shadow-2xl">
             <h3 className="text-xs font-black text-white uppercase tracking-widest">Update Daily Nutrition</h3>
             <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1"><label className="text-[9px] text-zinc-500 font-bold uppercase tracking-widest">Calories</label><input type="number" value={macrosForm.calories} onChange={(e) => setMacrosForm({ ...macrosForm, calories: e.target.value })} placeholder="2500" className="w-full bg-[#121216] border border-zinc-800 rounded-xl px-3 py-2 text-xs font-bold text-white focus:border-red-500/50 outline-none" /></div>
-              <div className="space-y-1"><label className="text-[9px] text-zinc-500 font-bold uppercase tracking-widest">Protein (g)</label><input type="number" value={macrosForm.protein} onChange={(e) => setMacrosForm({ ...macrosForm, protein: e.target.value })} placeholder="180" className="w-full bg-[#121216] border border-zinc-800 rounded-xl px-3 py-2 text-xs font-bold text-white focus:border-red-500/50 outline-none" /></div>
-              <div className="space-y-1"><label className="text-[9px] text-zinc-500 font-bold uppercase tracking-widest">Carbs (g)</label><input type="number" value={macrosForm.carbs} onChange={(e) => setMacrosForm({ ...macrosForm, carbs: e.target.value })} placeholder="300" className="w-full bg-[#121216] border border-zinc-800 rounded-xl px-3 py-2 text-xs font-bold text-white focus:border-red-500/50 outline-none" /></div>
-              <div className="space-y-1"><label className="text-[9px] text-zinc-500 font-bold uppercase tracking-widest">Fat (g)</label><input type="number" value={macrosForm.fat} onChange={(e) => setMacrosForm({ ...macrosForm, fat: e.target.value })} placeholder="80" className="w-full bg-[#121216] border border-zinc-800 rounded-xl px-3 py-2 text-xs font-bold text-white focus:border-red-500/50 outline-none" /></div>
+              <div className="space-y-1"><label className="text-[9px] text-zinc-500 font-bold uppercase tracking-widest">Calories</label><input type="number" value={macrosForm.calories} onChange={(e) => setMacrosForm({ ...macrosForm, calories: e.target.value })} placeholder="2500" className="w-full bg-[var(--dash-field)] border border-[var(--dash-border)] rounded-xl px-3 py-2 text-xs font-bold text-white focus:border-red-500/50 outline-none" /></div>
+              <div className="space-y-1"><label className="text-[9px] text-zinc-500 font-bold uppercase tracking-widest">Protein (g)</label><input type="number" value={macrosForm.protein} onChange={(e) => setMacrosForm({ ...macrosForm, protein: e.target.value })} placeholder="180" className="w-full bg-[var(--dash-field)] border border-[var(--dash-border)] rounded-xl px-3 py-2 text-xs font-bold text-white focus:border-red-500/50 outline-none" /></div>
+              <div className="space-y-1"><label className="text-[9px] text-zinc-500 font-bold uppercase tracking-widest">Carbs (g)</label><input type="number" value={macrosForm.carbs} onChange={(e) => setMacrosForm({ ...macrosForm, carbs: e.target.value })} placeholder="300" className="w-full bg-[var(--dash-field)] border border-[var(--dash-border)] rounded-xl px-3 py-2 text-xs font-bold text-white focus:border-red-500/50 outline-none" /></div>
+              <div className="space-y-1"><label className="text-[9px] text-zinc-500 font-bold uppercase tracking-widest">Fat (g)</label><input type="number" value={macrosForm.fat} onChange={(e) => setMacrosForm({ ...macrosForm, fat: e.target.value })} placeholder="80" className="w-full bg-[var(--dash-field)] border border-[var(--dash-border)] rounded-xl px-3 py-2 text-xs font-bold text-white focus:border-red-500/50 outline-none" /></div>
             </div>
             <div className="flex gap-3 pt-2">
-              <button onClick={() => setShowMacrosModal(false)} className="flex-1 py-2 bg-[#121216] border border-zinc-800 rounded-xl font-bold text-[10px] text-zinc-400 hover:text-white transition-colors">Cancel</button>
+              <button onClick={() => setShowMacrosModal(false)} className="flex-1 py-2 bg-[var(--dash-field)] border border-[var(--dash-border)] rounded-xl font-bold text-[10px] text-zinc-400 hover:text-white transition-colors">Cancel</button>
               <button onClick={saveMacros} disabled={isSavingMacros} className="flex-1 py-2 bg-red-500 rounded-xl font-black text-[10px] uppercase tracking-wider hover:bg-red-600 transition-colors text-white disabled:opacity-50 flex items-center justify-center gap-2">{isSavingMacros && <Spinner />}{isSavingMacros ? "Saving..." : "Save Nutrition"}</button>
             </div>
           </div>
@@ -1032,19 +1053,19 @@ export default function DashboardPage() {
       {/* Payment Modal */}
       {showPaymentModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm animate-fadeIn p-4">
-          <div className="bg-[#0b0b0e] border border-zinc-800 rounded-2xl p-6 w-full max-w-md space-y-5 shadow-2xl max-h-[90vh] overflow-y-auto">
+          <div className="bg-[var(--dash-panel)] border border-[var(--dash-border)] rounded-2xl p-6 w-full max-w-md space-y-5 shadow-2xl max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="text-white text-xl font-black tracking-tight font-heading">Checkout</h3>
                 <p className="text-zinc-500 text-xs font-semibold mt-0.5">Select your membership plan</p>
               </div>
-              <button onClick={() => setShowPaymentModal(false)} className="w-8 h-8 bg-[#121216] border border-zinc-800 rounded-xl flex items-center justify-center text-zinc-500 hover:text-white transition-colors"><X size={14} /></button>
+              <button onClick={() => setShowPaymentModal(false)} className="w-8 h-8 bg-[var(--dash-field)] border border-[var(--dash-border)] rounded-xl flex items-center justify-center text-zinc-500 hover:text-white transition-colors"><X size={14} /></button>
             </div>
 
             <div className="space-y-2">
               {(["DAILY", "WEEKLY", "MONTHLY", "SIX_MONTH", "YEARLY"] as const).map((plan) => (
                 <button key={plan} onClick={() => setSelectedPlan(plan)}
-                  className={`w-full flex items-center justify-between p-3 rounded-xl border transition-all ${selectedPlan === plan ? "bg-red-500/10 border-red-500/50 shadow-[0_0_15px_rgba(239,68,68,0.1)]" : "bg-[#121216] border-zinc-800 hover:border-zinc-700"}`}>
+                  className={`w-full flex items-center justify-between p-3 rounded-xl border transition-all ${selectedPlan === plan ? "bg-red-500/10 border-red-500/50 shadow-[0_0_15px_rgba(239,68,68,0.1)]" : "bg-[var(--dash-field)] border-[var(--dash-border)] hover:border-zinc-700"}`}>
                   <div className="text-left">
                     <div className={`text-xs font-black tracking-wide ${plan === "YEARLY" ? "text-amber-400" : plan === "SIX_MONTH" ? "text-red-400" : "text-white"}`}>
                       {PLAN_LABELS[plan]} {plan === "YEARLY" && "👑"} {plan === "SIX_MONTH" && "🔥"} {plan === "MONTHLY" && "⚡"}
@@ -1060,51 +1081,51 @@ export default function DashboardPage() {
               ))}
             </div>
 
-            <div className="border-t border-zinc-800 pt-4">
+            <div className="border-t border-[var(--dash-border)] pt-4">
               <p className="text-[10px] font-black text-zinc-500 tracking-wide mb-3">ADD-ONS</p>
               <button onClick={() => setPayHasCoach(!payHasCoach)}
-                className={`w-full flex items-center justify-between p-3 rounded-xl border mb-2 transition-all ${payHasCoach ? "bg-blue-500/10 border-blue-500/50" : "bg-[#121216] border-zinc-800 hover:border-zinc-700"}`}>
+                className={`w-full flex items-center justify-between p-3 rounded-xl border mb-2 transition-all ${payHasCoach ? "bg-blue-500/10 border-blue-500/50" : "bg-[var(--dash-field)] border-[var(--dash-border)] hover:border-zinc-700"}`}>
                 <div className="text-left">
                   <div className="text-xs font-black text-white">Private Coach</div>
                   <div className="text-[10px] text-zinc-500 font-bold mt-0.5">1-on-1 dedicated training</div>
                 </div>
                 <div className="text-right flex items-center gap-2">
                   <span className="text-xs font-black text-blue-400">+$50</span>
-                  <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all ${payHasCoach ? "bg-blue-500 border-blue-500" : "border-zinc-700 bg-[#121216]"}`}>
+                  <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all ${payHasCoach ? "bg-blue-500 border-blue-500" : "border-zinc-700 bg-[var(--dash-field)]"}`}>
                     {payHasCoach && <Check size={12} className="text-white" />}
                   </div>
                 </div>
               </button>
               <button onClick={() => setPayHasMeal(!payHasMeal)}
-                className={`w-full flex items-center justify-between p-3 rounded-xl border transition-all ${payHasMeal ? "bg-emerald-500/10 border-emerald-500/50" : "bg-[#121216] border-zinc-800 hover:border-zinc-700"}`}>
+                className={`w-full flex items-center justify-between p-3 rounded-xl border transition-all ${payHasMeal ? "bg-emerald-500/10 border-emerald-500/50" : "bg-[var(--dash-field)] border-[var(--dash-border)] hover:border-zinc-700"}`}>
                 <div className="text-left">
                   <div className="text-xs font-black text-white">Meal Plan</div>
                   <div className="text-[10px] text-zinc-500 font-bold mt-0.5">Custom nutrition & macro guidance</div>
                 </div>
                 <div className="text-right flex items-center gap-2">
                   <span className="text-xs font-black text-emerald-400">+$20</span>
-                  <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all ${payHasMeal ? "bg-emerald-500 border-emerald-500" : "border-zinc-700 bg-[#121216]"}`}>
+                  <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all ${payHasMeal ? "bg-emerald-500 border-emerald-500" : "border-zinc-700 bg-[var(--dash-field)]"}`}>
                     {payHasMeal && <Check size={12} className="text-white" />}
                   </div>
                 </div>
               </button>
             </div>
 
-            <div className="bg-[#121216] border border-zinc-800 rounded-xl p-4">
+            <div className="bg-[var(--dash-field)] border border-[var(--dash-border)] rounded-xl p-4">
               <div className="flex items-center justify-between mb-1">
                 <span className="text-xs font-bold text-zinc-500">Plan</span>
                 <span className="text-xs font-black text-white">{PLAN_LABELS[selectedPlan]}</span>
               </div>
               {payHasCoach && <div className="flex items-center justify-between mb-1"><span className="text-xs font-bold text-zinc-500">Private Coach</span><span className="text-xs font-black text-blue-400">+$50.00</span></div>}
               {payHasMeal && <div className="flex items-center justify-between mb-1"><span className="text-xs font-bold text-zinc-500">Meal Plan</span><span className="text-xs font-black text-emerald-400">+$20.00</span></div>}
-              <div className="border-t border-zinc-800 mt-2 pt-2 flex items-center justify-between">
+              <div className="border-t border-[var(--dash-border)] mt-2 pt-2 flex items-center justify-between">
                 <span className="text-sm font-black text-white">Total</span>
                 <span className="text-xl font-black text-white">${paymentTotal.toFixed(2)}</span>
               </div>
             </div>
 
             <div className="flex gap-3">
-              <button onClick={() => setShowPaymentModal(false)} className="flex-1 py-2.5 bg-[#121216] border border-zinc-800 rounded-xl font-bold text-[10px] text-zinc-400 hover:text-white transition-colors">Cancel</button>
+              <button onClick={() => setShowPaymentModal(false)} className="flex-1 py-2.5 bg-[var(--dash-field)] border border-[var(--dash-border)] rounded-xl font-bold text-[10px] text-zinc-400 hover:text-white transition-colors">Cancel</button>
               <button onClick={processPayment} disabled={isProcessingPayment} className="flex-1 py-2.5 bg-red-600 hover:bg-red-500 rounded-xl font-black text-[10px] uppercase tracking-wider transition-colors text-white disabled:opacity-50 flex items-center justify-center gap-2 shadow-lg shadow-red-500/20">
                 {isProcessingPayment && <Spinner />} {isProcessingPayment ? "Processing..." : `Pay $${paymentTotal.toFixed(2)}`}
               </button>

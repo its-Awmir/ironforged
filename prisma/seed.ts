@@ -1,5 +1,5 @@
 import "dotenv/config";
-import { PrismaClient, UserRole, EquipmentStatus, AttendanceStatus } from "../src/generated/prisma/client";
+import { PrismaClient, Prisma, UserRole, EquipmentStatus, AttendanceStatus } from "../src/generated/prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import bcrypt from "bcryptjs";
 import * as fs from "fs";
@@ -332,7 +332,7 @@ async function seedEnrollments(knownUserUuids: Set<string>, knownClassUuids: Set
       continue;
     }
 
-    const [userIdStr, classIdStr, _dateEnrolled] = parts;
+    const [userIdStr, classIdStr] = parts;
     const userUuid = legacyIdToUuid(userIdStr);
     const classUuid = legacyIdToUuid(classIdStr);
 
@@ -520,7 +520,7 @@ async function seedGroupWorkouts(knownClassUuids: Set<string>) {
         data: {
           classId: classUuid,
           date,
-          workoutJson: workoutData as any,
+          workoutJson: workoutData as Prisma.InputJsonValue,
           createdAt: new Date(),
         },
       });
@@ -581,7 +581,7 @@ async function seedIndividualWorkouts(knownUserUuids: Set<string>) {
         data: {
           studentId: studentUuid,
           date,
-          workoutJson: workoutData as any,
+          workoutJson: workoutData as Prisma.InputJsonValue,
           createdAt: new Date(),
         },
       });
@@ -664,7 +664,7 @@ async function main() {
   console.log("╚═══════════════════════════════════════════════╝\n");
 
   // ── Step 1: Users ──
-  const emailToUuid = await seedUsers();
+  await seedUsers();
 
   // Build a reverse lookup: legacy numeric ID → UUID
   // We need this because enrollments reference user IDs, not emails
@@ -672,7 +672,7 @@ async function main() {
   const knownUserUuids = new Set(allUsers.map((u) => u.id));
 
   // ── Step 2: Classes ──
-  const classNameToUuid = await seedClasses();
+  await seedClasses();
 
   // Build known class UUIDs set
   const allClasses = await prisma.gymClass.findMany({ select: { id: true } });

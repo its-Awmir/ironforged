@@ -1,13 +1,14 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ToastContainer, showToast } from "@/components/Toast";
 import ConfirmModal from "@/components/ConfirmModal";
 import EditRoleModal from "@/components/EditRoleModal";
 import Spinner from "@/components/Spinner";
-import { SkeletonFullPage, SkeletonTableRows } from "@/components/Skeleton";
+import { SkeletonTableRows } from "@/components/Skeleton";
+import ThemeToggle from "@/components/ThemeToggle";
 
 interface User {
   id: string;
@@ -25,7 +26,26 @@ interface ClassItem {
   time: string;
   capacity?: number;
   enrolled?: number;
-  students?: any;
+  students?: ClassStudent[];
+}
+
+interface ClassStudent {
+  id: string;
+  name: string;
+  email: string;
+}
+
+interface SysInfo {
+  status?: string;
+  uptime?: string;
+  memory?: string;
+  cpu?: string;
+  platform?: string;
+  nodeVersion?: string;
+  users?: number;
+  revenue?: number;
+  memoryUsedMB?: number;
+  memoryTotalMB?: number;
 }
 
 interface EquipmentItem {
@@ -52,6 +72,9 @@ interface SubscriptionItem {
   } | null;
 }
 
+const LOG_SKELETON_WIDTHS = ["82%", "64%", "90%", "58%", "75%", "68%"];
+const SYS_SKELETON_WIDTHS = ["80%", "62%", "70%", "58%"];
+
 export default function AdminPanelPage() {
   const router = useRouter();
   const [activeSection, setActiveSection] = useState<string>("members");
@@ -62,7 +85,7 @@ export default function AdminPanelPage() {
   const [classes, setClasses] = useState<ClassItem[]>([]);
   const [equipment, setEquipment] = useState<EquipmentItem[]>([]);
   const [logs, setLogs] = useState<string[]>([]);
-  const [sysInfo, setSysInfo] = useState<any>(null);
+  const [sysInfo, setSysInfo] = useState<SysInfo | null>(null);
   const [subscriptions, setSubscriptions] = useState<SubscriptionItem[]>([]);
 
   // Loading states
@@ -152,6 +175,31 @@ export default function AdminPanelPage() {
   });
   const [isGranting, setIsGranting] = useState(false);
 
+  // --- MEMBERS API ---
+  const loadMembers = useCallback(async () => {
+    setIsMembersLoading(true);
+    try {
+      const res = await fetch("/api/users");
+      const json = await res.json();
+      setUsers(Array.isArray(json.data) ? json.data : []);
+    } catch (err) {
+      console.error("Error loading users", err);
+    } finally {
+      setIsMembersLoading(false);
+    }
+  }, []);
+
+  const loadCoaches = useCallback(async () => {
+    try {
+      const res = await fetch("/api/users");
+      const json = await res.json();
+      const allUsers = Array.isArray(json.data) ? json.data : [];
+      setCoaches(allUsers.filter((u: User) => u.role.toLowerCase() === "coach"));
+    } catch (err) {
+      console.error("Error loading coaches", err);
+    }
+  }, []);
+
   useEffect(() => {
     const isLoggedIn = localStorage.getItem("isLoggedIn") === "true";
     const currentUserRaw = localStorage.getItem("currentUser");
@@ -170,10 +218,13 @@ export default function AdminPanelPage() {
       localStorage.clear();
       router.replace("/login");
     }
+  }, [router]);
 
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     loadMembers();
     loadCoaches();
-  }, [router]);
+  }, [loadMembers, loadCoaches]);
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     const card = e.currentTarget;
@@ -184,7 +235,7 @@ export default function AdminPanelPage() {
     card.style.setProperty("--my", `${y}%`);
   };
 
-  const safeGetStudents = (classItem: ClassItem | null): any[] => {
+  const safeGetStudents = (classItem: ClassItem | null): ClassStudent[] => {
     if (!classItem || !classItem.students) return [];
     if (Array.isArray(classItem.students)) return classItem.students;
     if (typeof classItem.students === "string") {
@@ -208,31 +259,6 @@ export default function AdminPanelPage() {
     if (section === "server") {
       fetchLogs();
       fetchSystemInfo();
-    }
-  };
-
-  // --- MEMBERS API ---
-  const loadMembers = async () => {
-    setIsMembersLoading(true);
-    try {
-      const res = await fetch("/api/users");
-      const json = await res.json();
-      setUsers(Array.isArray(json.data) ? json.data : []);
-    } catch (err) {
-      console.error("Error loading users", err);
-    } finally {
-      setIsMembersLoading(false);
-    }
-  };
-
-  const loadCoaches = async () => {
-    try {
-      const res = await fetch("/api/users");
-      const json = await res.json();
-      const allUsers = Array.isArray(json.data) ? json.data : [];
-      setCoaches(allUsers.filter((u: User) => u.role.toLowerCase() === "coach"));
-    } catch (err) {
-      console.error("Error loading coaches", err);
     }
   };
 
@@ -495,7 +521,7 @@ export default function AdminPanelPage() {
     if (!manageSubState.user) return;
     setIsSavingSub(true);
     try {
-      const payload: Record<string, any> = {
+      const payload: { userId: string; planType: string; hasPrivateCoach: boolean; hasMealPlan: boolean; customDays?: number } = {
         userId: manageSubState.user.userId,
         planType: manageSubForm.planType,
         hasPrivateCoach: manageSubForm.hasPrivateCoach,
@@ -697,7 +723,7 @@ export default function AdminPanelPage() {
   });
 
   return (
-    <div className="min-h-screen bg-[#070709] text-[#f4f4f5] flex font-sans overflow-x-hidden antialiased selection:bg-red-500 selection:text-white relative">
+    <div className="dash-root min-h-screen bg-[var(--dash-bg)] text-[var(--dash-text)] flex font-sans overflow-x-hidden antialiased selection:bg-red-500 selection:text-white relative">
 
       <div className="fixed top-[-10%] right-[-10%] w-[500px] h-[500px] bg-red-900/10 rounded-full blur-[160px] pointer-events-none z-0" />
 
@@ -706,10 +732,11 @@ export default function AdminPanelPage() {
       )}
 
       {/* Sidebar */}
-      <aside aria-label="Admin navigation" className={`w-64 border-r border-zinc-900/60 bg-[#0b0b0e]/95 lg:bg-[#0b0b0e]/80 backdrop-blur-xl p-6 flex flex-col justify-between fixed h-screen z-40 lg:z-30 transition-transform duration-300 ease-in-out ${isMobileMenuOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}`}>
+      <aside aria-label="Admin navigation" className={`w-64 border-r border-[var(--dash-divider)] bg-[var(--dash-panel)]/95 lg:bg-[var(--dash-panel)]/80 backdrop-blur-xl p-6 flex flex-col justify-between fixed h-screen z-40 lg:z-30 transition-transform duration-300 ease-in-out ${isMobileMenuOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}`}>
         <div>
           <div className="mb-10 pl-2 flex items-center justify-between">
             <Link href="/">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src="/img/logo.svg" alt="IronForged" className="h-9 hover:opacity-80 transition-opacity" />
             </Link>
             <button onClick={() => setIsMobileMenuOpen(false)} aria-label="Close menu" className="lg:hidden text-zinc-400 hover:text-white">
@@ -729,7 +756,7 @@ export default function AdminPanelPage() {
                 key={tab.id}
                 onClick={() => showSection(tab.id)}
                 aria-current={activeSection === tab.id ? "page" : undefined}
-                className={`w-full flex items-center gap-3.5 px-4 py-3 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all relative ${activeSection === tab.id ? "bg-gradient-to-r from-zinc-900 to-zinc-900/50 text-red-500 border border-zinc-800/80 shadow-inner" : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/30"}`}
+                className={`w-full flex items-center gap-3.5 px-4 py-3 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all relative ${activeSection === tab.id ? "bg-gradient-to-r from-zinc-900 to-zinc-900/50 text-red-500 border border-[var(--dash-border)] shadow-inner" : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/30"}`}
               >
                 {activeSection === tab.id && (
                   <span className="absolute left-0 w-[3px] h-5 bg-red-500 rounded-r-full shadow-[0_0_10px_rgba(239,68,68,0.7)]" aria-hidden="true"></span>
@@ -747,7 +774,7 @@ export default function AdminPanelPage() {
           </nav>
         </div>
 
-        <div className="space-y-2 border-t border-zinc-900/60 pt-4">
+        <div className="space-y-2 border-t border-[var(--dash-divider)] pt-4">
           <button onClick={handleLogout} aria-label="Log out" className="w-full flex items-center gap-3 text-zinc-500 hover:text-red-400 font-bold text-[11px] uppercase tracking-wider px-4 py-2 rounded-xl transition-colors text-left cursor-pointer">
             Log Out
           </button>
@@ -756,9 +783,9 @@ export default function AdminPanelPage() {
 
       {/* Main Content */}
       <main className="flex-1 w-full lg:pl-64 min-h-screen flex flex-col z-10 relative">
-        <header className="px-4 lg:px-8 pt-6 lg:pt-8 pb-4 flex items-center justify-between border-b border-zinc-900/30 lg:border-none">
+        <header className="px-4 lg:px-8 pt-6 lg:pt-8 pb-4 flex items-center justify-between border-b border-[var(--dash-divider)] lg:border-none">
           <div className="flex items-center gap-3">
-            <button onClick={() => setIsMobileMenuOpen(true)} aria-label="Open menu" className="lg:hidden p-2 bg-zinc-900 border border-zinc-800 rounded-xl text-zinc-300 hover:text-white transition-colors">
+            <button onClick={() => setIsMobileMenuOpen(true)} aria-label="Open menu" className="lg:hidden p-2 bg-zinc-900 border border-[var(--dash-border)] rounded-xl text-zinc-300 hover:text-white transition-colors">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true"><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="18" x2="21" y2="18" /></svg>
             </button>
             <div>
@@ -768,8 +795,11 @@ export default function AdminPanelPage() {
               <p className="text-[9px] lg:text-[10px] text-zinc-500 font-bold uppercase tracking-widest mt-0.5 hidden sm:block">SYSTEM MONITOR & MANAGEMENT</p>
             </div>
           </div>
-          <div className="bg-emerald-500/10 border border-emerald-500/20 text-[8px] lg:text-[9px] font-black tracking-widest text-emerald-400 uppercase px-2.5 py-1.5 rounded-xl">
-            SYSTEM ONLINE
+          <div className="flex items-center gap-3">
+            <ThemeToggle />
+            <div className="bg-emerald-500/10 border border-emerald-500/20 text-[8px] lg:text-[9px] font-black tracking-widest text-emerald-400 uppercase px-2.5 py-1.5 rounded-xl">
+              SYSTEM ONLINE
+            </div>
           </div>
         </header>
 
@@ -778,7 +808,7 @@ export default function AdminPanelPage() {
           {/* 1. MEMBERS SECTION */}
           {activeSection === "members" && (
             <div onMouseMove={handleMouseMove} className="premium-glow-card rounded-2xl p-4 lg:p-6 space-y-4 animate-fadeIn">
-              <div className="flex justify-between items-center border-b border-zinc-900/60 pb-3">
+              <div className="flex justify-between items-center border-b border-[var(--dash-divider)] pb-3">
                 <h2 className="text-xs font-black text-white uppercase tracking-widest">MANAGE MEMBERS</h2>
                 <span className="text-[10px] bg-zinc-900/80 px-3 py-1 rounded-full font-bold text-zinc-400">{filteredMembers.length} / {users.length}</span>
               </div>
@@ -813,7 +843,7 @@ export default function AdminPanelPage() {
               <div className="w-full overflow-x-auto block">
                 <table className="w-full text-left text-xs min-w-[600px]" aria-label="Members">
                   <thead>
-                    <tr className="text-[9px] uppercase font-black text-zinc-500 tracking-widest border-b border-zinc-900 pb-3">
+                    <tr className="text-[9px] uppercase font-black text-zinc-500 tracking-widest border-b border-[var(--dash-divider)] pb-3">
                       <th scope="col" className="pb-2">Name</th>
                       <th scope="col" className="pb-2">Email</th>
                       <th scope="col" className="pb-2">Role</th>
@@ -821,7 +851,7 @@ export default function AdminPanelPage() {
                       <th scope="col" className="pb-2 text-right">Actions</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-zinc-900/40 text-zinc-300">
+                  <tbody className="divide-y divide-[var(--dash-divider)] text-zinc-300">
                     {isMembersLoading ? (
                       <SkeletonTableRows rows={6} cols={5} />
                     ) : filteredMembers.length === 0 ? (
@@ -846,7 +876,7 @@ export default function AdminPanelPage() {
                         </td>
                         <td className="py-3 text-zinc-500">{u.goal || "General"}</td>
                         <td className="py-3 text-right space-x-2">
-                          <button onClick={() => editUserRole(u.id, u.role, u.name)} className="bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 px-2.5 py-1 rounded-lg font-bold text-[10px] text-zinc-300 transition-colors">Edit Role</button>
+                          <button onClick={() => editUserRole(u.id, u.role, u.name)} className="bg-zinc-900 hover:bg-zinc-800 border border-[var(--dash-border)] px-2.5 py-1 rounded-lg font-bold text-[10px] text-zinc-300 transition-colors">Edit Role</button>
                           <button onClick={() => confirmDeleteUser(u.id, u.name)} className="bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 px-2.5 py-1 rounded-lg font-bold text-[10px] text-red-400 transition-colors">Delete</button>
                         </td>
                       </tr>
@@ -860,14 +890,14 @@ export default function AdminPanelPage() {
           {/* 2. CLASSES SECTION */}
           {activeSection === "classes" && (
             <div onMouseMove={handleMouseMove} className="premium-glow-card rounded-2xl p-4 lg:p-6 space-y-4 animate-fadeIn">
-              <div className="flex justify-between items-center border-b border-zinc-900/60 pb-3">
+              <div className="flex justify-between items-center border-b border-[var(--dash-divider)] pb-3">
                 <h2 className="text-xs font-black text-white uppercase tracking-widest">MANAGE CLASSES</h2>
                 <button onClick={() => setIsClassModalOpen(true)} className="bg-red-500 hover:bg-red-600 text-white font-black text-[10px] uppercase tracking-widest px-4 py-2 rounded-xl transition-all shadow-lg shadow-red-500/10">+ Add Class</button>
               </div>
               <div className="w-full overflow-x-auto block">
                 <table className="w-full text-left text-xs min-w-[650px]" aria-label="Classes">
                   <thead>
-                    <tr className="text-[9px] uppercase font-black text-zinc-500 tracking-widest border-b border-zinc-900 pb-3">
+                    <tr className="text-[9px] uppercase font-black text-zinc-500 tracking-widest border-b border-[var(--dash-divider)] pb-3">
                       <th scope="col" className="pb-2">Title</th>
                       <th scope="col" className="pb-2">Coach</th>
                       <th scope="col" className="pb-2">Schedule</th>
@@ -875,7 +905,7 @@ export default function AdminPanelPage() {
                       <th scope="col" className="pb-2 text-right">Actions</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-zinc-900/40 text-zinc-300">
+                  <tbody className="divide-y divide-[var(--dash-divider)] text-zinc-300">
                     {isClassesLoading ? (
                       <SkeletonTableRows rows={5} cols={5} />
                     ) : classes.map((c) => {
@@ -891,7 +921,7 @@ export default function AdminPanelPage() {
                             </button>
                           </td>
                           <td className="py-3 text-right space-x-2">
-                            <button onClick={() => { setEditingClass(c); setIsEditClassModalOpen(true); }} className="bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 px-2.5 py-1 rounded-lg font-bold text-[10px] text-zinc-300 transition-colors">Edit</button>
+                            <button onClick={() => { setEditingClass(c); setIsEditClassModalOpen(true); }} className="bg-zinc-900 hover:bg-zinc-800 border border-[var(--dash-border)] px-2.5 py-1 rounded-lg font-bold text-[10px] text-zinc-300 transition-colors">Edit</button>
                             <button onClick={() => confirmDeleteClass(c.id, c.title)} className="bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 px-2.5 py-1 rounded-lg font-bold text-[10px] text-red-400 transition-colors">Delete</button>
                           </td>
                         </tr>
@@ -906,21 +936,21 @@ export default function AdminPanelPage() {
           {/* 3. EQUIPMENT SECTION */}
           {activeSection === "equipment" && (
             <div onMouseMove={handleMouseMove} className="premium-glow-card rounded-2xl p-4 lg:p-6 space-y-4 animate-fadeIn">
-              <div className="flex justify-between items-center border-b border-zinc-900/60 pb-3">
+              <div className="flex justify-between items-center border-b border-[var(--dash-divider)] pb-3">
                 <h2 className="text-xs font-black text-white uppercase tracking-widest">MANAGE EQUIPMENT</h2>
                 <button onClick={() => setIsEquipModalOpen(true)} className="bg-red-500 hover:bg-red-600 text-white font-black text-[10px] uppercase tracking-widest px-4 py-2 rounded-xl transition-all shadow-lg shadow-red-500/10">+ Add Equipment</button>
               </div>
               <div className="w-full overflow-x-auto block">
                 <table className="w-full text-left text-xs min-w-[550px]" aria-label="Equipment">
                   <thead>
-                    <tr className="text-[9px] uppercase font-black text-zinc-500 tracking-widest border-b border-zinc-900 pb-3">
+                    <tr className="text-[9px] uppercase font-black text-zinc-500 tracking-widest border-b border-[var(--dash-divider)] pb-3">
                       <th scope="col" className="pb-2">Name</th>
                       <th scope="col" className="pb-2">Status</th>
                       <th scope="col" className="pb-2">Last Check</th>
                       <th scope="col" className="pb-2 text-right">Actions</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-zinc-900/40 text-zinc-300">
+                  <tbody className="divide-y divide-[var(--dash-divider)] text-zinc-300">
                     {isEquipmentLoading ? (
                       <SkeletonTableRows rows={4} cols={4} />
                     ) : equipment.map((e) => (
@@ -931,7 +961,7 @@ export default function AdminPanelPage() {
                         </td>
                         <td className="py-3 text-zinc-500">{e.lastCheck || "N/A"}</td>
                         <td className="py-3 text-right space-x-2">
-                          <button onClick={() => editEquipment(e.id, e.name, e.status)} className="bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 px-2.5 py-1 rounded-lg font-bold text-[10px] text-zinc-300 transition-colors">Edit</button>
+                          <button onClick={() => editEquipment(e.id, e.name, e.status)} className="bg-zinc-900 hover:bg-zinc-800 border border-[var(--dash-border)] px-2.5 py-1 rounded-lg font-bold text-[10px] text-zinc-300 transition-colors">Edit</button>
                           <button onClick={() => confirmDeleteEquipment(e.id, e.name)} className="bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 px-2.5 py-1 rounded-lg font-bold text-[10px] text-red-400 transition-colors">Delete</button>
                         </td>
                       </tr>
@@ -945,7 +975,7 @@ export default function AdminPanelPage() {
           {/* 4. SUBSCRIPTIONS SECTION */}
           {activeSection === "subscriptions" && (
             <div onMouseMove={handleMouseMove} className="premium-glow-card rounded-2xl p-4 lg:p-6 space-y-4 animate-fadeIn">
-              <div className="flex justify-between items-center border-b border-zinc-900/60 pb-3">
+              <div className="flex justify-between items-center border-b border-[var(--dash-divider)] pb-3">
                 <h2 className="text-xs font-black text-white uppercase tracking-widest">SUBSCRIPTION MANAGEMENT</h2>
                 <div className="flex items-center gap-3">
                   <span className="text-[10px] bg-zinc-900/80 px-3 py-1 rounded-full font-bold text-zinc-400">{subscriptions.filter(s => s.subscription?.status === "ACTIVE").length} Active</span>
@@ -955,7 +985,7 @@ export default function AdminPanelPage() {
               <div className="w-full overflow-x-auto block">
                 <table className="w-full text-left text-xs min-w-[700px]" aria-label="Subscriptions">
                   <thead>
-                    <tr className="text-[9px] uppercase font-black text-zinc-500 tracking-widest border-b border-zinc-900 pb-3">
+                    <tr className="text-[9px] uppercase font-black text-zinc-500 tracking-widest border-b border-[var(--dash-divider)] pb-3">
                       <th scope="col" className="pb-2">Member</th>
                       <th scope="col" className="pb-2">Plan</th>
                       <th scope="col" className="pb-2">Status</th>
@@ -963,7 +993,7 @@ export default function AdminPanelPage() {
                       <th scope="col" className="pb-2 text-right">Actions</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-zinc-900/40 text-zinc-300">
+                  <tbody className="divide-y divide-[var(--dash-divider)] text-zinc-300">
                     {isSubscriptionsLoading ? (
                       <SkeletonTableRows rows={5} cols={5} />
                     ) : subscriptions.length === 0 ? (
@@ -992,7 +1022,7 @@ export default function AdminPanelPage() {
                           </td>
                           <td className="py-3">
                             <div className="flex items-center gap-1.5">
-                              <span className={`text-[9px] px-2 py-0.5 rounded border font-black uppercase tracking-wider ${isActive ? "bg-zinc-800 text-white border-zinc-700" : "bg-zinc-900/50 text-zinc-500 border-zinc-800"}`}>
+                              <span className={`text-[9px] px-2 py-0.5 rounded border font-black uppercase tracking-wider ${isActive ? "bg-zinc-800 text-white border-zinc-700" : "bg-zinc-900/50 text-zinc-500 border-[var(--dash-border)]"}`}>
                                 {PLAN_LABELS[sub?.planType || "MONTHLY"] || sub?.planType || "None"}
                               </span>
                             </div>
@@ -1035,7 +1065,7 @@ export default function AdminPanelPage() {
           {/* 4b. GRANT GIFT SUBSCRIPTION CARD (inside subscriptions section) */}
           {activeSection === "subscriptions" && (
             <div onMouseMove={handleMouseMove} className="premium-glow-card rounded-2xl p-4 lg:p-6 space-y-4 animate-fadeIn mt-6">
-              <div className="border-b border-zinc-900/60 pb-3">
+              <div className="border-b border-[var(--dash-divider)] pb-3">
                 <h2 className="text-xs font-black text-white uppercase tracking-widest">GRANT GIFT SUBSCRIPTION</h2>
                 <p className="text-[10px] text-zinc-500 font-bold mt-1">Search for a member and gift them a subscription plan.</p>
               </div>
@@ -1046,7 +1076,7 @@ export default function AdminPanelPage() {
                   <div className="relative">
                     <label className="text-[10px] font-bold text-zinc-500 uppercase block mb-1">Search Member</label>
                     {grantForm.selectedUserId ? (
-                      <div className="flex items-center justify-between bg-[#121216] border border-emerald-500/30 rounded-xl px-3 py-2.5">
+                      <div className="flex items-center justify-between bg-[var(--dash-field)] border border-emerald-500/30 rounded-xl px-3 py-2.5">
                         <div>
                           <div className="text-xs font-black text-white">{grantForm.selectedUserName}</div>
                           <div className="text-[10px] text-zinc-500">{users.find(u => u.id === grantForm.selectedUserId)?.email}</div>
@@ -1055,11 +1085,11 @@ export default function AdminPanelPage() {
                       </div>
                     ) : (
                       <>
-                        <input type="text" value={grantForm.searchQuery} onChange={e => setGrantForm(f => ({ ...f, searchQuery: e.target.value, selectedUserId: "", selectedUserName: "" }))} placeholder="Type name or email..." className="w-full bg-[#121216] border border-zinc-800 rounded-xl px-3 py-2.5 text-xs text-white focus:outline-none focus:border-red-500 placeholder:text-zinc-700" />
+                        <input type="text" value={grantForm.searchQuery} onChange={e => setGrantForm(f => ({ ...f, searchQuery: e.target.value, selectedUserId: "", selectedUserName: "" }))} placeholder="Type name or email..." className="w-full bg-[var(--dash-field)] border border-[var(--dash-border)] rounded-xl px-3 py-2.5 text-xs text-white focus:outline-none focus:border-red-500 placeholder:text-zinc-700" />
                         {grantForm.searchQuery.trim() && grantSearchResults.length > 0 && (
-                          <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-[#121216] border border-zinc-800 rounded-xl max-h-40 overflow-y-auto shadow-xl">
+                          <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-[var(--dash-field)] border border-[var(--dash-border)] rounded-xl max-h-40 overflow-y-auto shadow-xl">
                             {grantSearchResults.slice(0, 8).map((u) => (
-                              <button key={u.id} onClick={() => setGrantForm(f => ({ ...f, selectedUserId: u.id, selectedUserName: u.name, searchQuery: "" }))} className="w-full text-left px-3 py-2 text-xs hover:bg-zinc-800/60 transition-colors flex items-center gap-2 border-b border-zinc-900/40 last:border-0">
+                              <button key={u.id} onClick={() => setGrantForm(f => ({ ...f, selectedUserId: u.id, selectedUserName: u.name, searchQuery: "" }))} className="w-full text-left px-3 py-2 text-xs hover:bg-zinc-800/60 transition-colors flex items-center gap-2 border-b border-[var(--dash-divider)] last:border-0">
                                 <div>
                                   <div className="font-bold text-white">{u.name}</div>
                                   <div className="text-[10px] text-zinc-500">{u.email}</div>
@@ -1069,7 +1099,7 @@ export default function AdminPanelPage() {
                           </div>
                         )}
                         {grantForm.searchQuery.trim() && grantSearchResults.length === 0 && (
-                          <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-[#121216] border border-zinc-800 rounded-xl px-3 py-3 text-xs text-zinc-500 shadow-xl">
+                          <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-[var(--dash-field)] border border-[var(--dash-border)] rounded-xl px-3 py-3 text-xs text-zinc-500 shadow-xl">
                             No members found matching &quot;{grantForm.searchQuery}&quot;
                           </div>
                         )}
@@ -1079,7 +1109,7 @@ export default function AdminPanelPage() {
 
                   <div>
                     <label className="text-[10px] font-bold text-zinc-500 uppercase block mb-1">Start Date</label>
-                    <input type="date" value={grantForm.startDate} onChange={e => setGrantForm(f => ({ ...f, startDate: e.target.value }))} disabled={isGranting} className="w-full bg-[#121216] border border-zinc-800 rounded-xl px-3 py-2.5 text-xs text-white focus:outline-none focus:border-red-500 disabled:opacity-50" />
+                    <input type="date" value={grantForm.startDate} onChange={e => setGrantForm(f => ({ ...f, startDate: e.target.value }))} disabled={isGranting} className="w-full bg-[var(--dash-field)] border border-[var(--dash-border)] rounded-xl px-3 py-2.5 text-xs text-white focus:outline-none focus:border-red-500 disabled:opacity-50" />
                   </div>
                 </div>
 
@@ -1087,7 +1117,7 @@ export default function AdminPanelPage() {
                 <div className="space-y-3">
                   <div>
                     <label className="text-[10px] font-bold text-zinc-500 uppercase block mb-1">Gift Plan</label>
-                    <select value={grantForm.planType} onChange={e => setGrantForm(f => ({ ...f, planType: e.target.value }))} disabled={isGranting} className="select-dark w-full bg-[#121216] border border-zinc-800 rounded-xl px-3 py-2.5 text-xs text-white focus:outline-none focus:border-transparent disabled:opacity-50">
+                    <select value={grantForm.planType} onChange={e => setGrantForm(f => ({ ...f, planType: e.target.value }))} disabled={isGranting} className="select-dark w-full bg-[var(--dash-field)] border border-[var(--dash-border)] rounded-xl px-3 py-2.5 text-xs text-white focus:outline-none focus:border-transparent disabled:opacity-50">
                       <option value="DAILY">Gift Daily (1 day)</option>
                       <option value="WEEKLY">Gift Weekly (7 days)</option>
                       <option value="MONTHLY">Gift Monthly (30 days)</option>
@@ -1100,22 +1130,22 @@ export default function AdminPanelPage() {
                     <label className="text-[10px] font-bold text-zinc-500 uppercase block mb-2">Add-ons</label>
                     <div className="space-y-2">
                       <button onClick={() => setGrantForm(f => ({ ...f, hasPrivateCoach: !f.hasPrivateCoach }))} disabled={isGranting}
-                        className={`w-full flex items-center justify-between p-3 rounded-xl border transition-all disabled:opacity-50 ${grantForm.hasPrivateCoach ? "bg-blue-500/10 border-blue-500/50" : "bg-[#121216] border-zinc-800 hover:border-zinc-700"}`}>
+                        className={`w-full flex items-center justify-between p-3 rounded-xl border transition-all disabled:opacity-50 ${grantForm.hasPrivateCoach ? "bg-blue-500/10 border-blue-500/50" : "bg-[var(--dash-field)] border-[var(--dash-border)] hover:border-zinc-700"}`}>
                         <div className="text-left">
                           <div className="text-xs font-black text-white">Include Private Coach</div>
                           <div className="text-[10px] text-zinc-500 font-bold">1-on-1 dedicated training</div>
                         </div>
-                        <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all ${grantForm.hasPrivateCoach ? "bg-blue-500 border-blue-500" : "border-zinc-700 bg-[#121216]"}`}>
+                        <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all ${grantForm.hasPrivateCoach ? "bg-blue-500 border-blue-500" : "border-zinc-700 bg-[var(--dash-field)]"}`}>
                           {grantForm.hasPrivateCoach && <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><polyline points="20 6 9 17 4 12" /></svg>}
                         </div>
                       </button>
                       <button onClick={() => setGrantForm(f => ({ ...f, hasMealPlan: !f.hasMealPlan }))} disabled={isGranting}
-                        className={`w-full flex items-center justify-between p-3 rounded-xl border transition-all disabled:opacity-50 ${grantForm.hasMealPlan ? "bg-emerald-500/10 border-emerald-500/50" : "bg-[#121216] border-zinc-800 hover:border-zinc-700"}`}>
+                        className={`w-full flex items-center justify-between p-3 rounded-xl border transition-all disabled:opacity-50 ${grantForm.hasMealPlan ? "bg-emerald-500/10 border-emerald-500/50" : "bg-[var(--dash-field)] border-[var(--dash-border)] hover:border-zinc-700"}`}>
                         <div className="text-left">
                           <div className="text-xs font-black text-white">Include Custom Meal Plan</div>
                           <div className="text-[10px] text-zinc-500 font-bold">Nutrition & macro guidance</div>
                         </div>
-                        <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all ${grantForm.hasMealPlan ? "bg-emerald-500 border-emerald-500" : "border-zinc-700 bg-[#121216]"}`}>
+                        <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all ${grantForm.hasMealPlan ? "bg-emerald-500 border-emerald-500" : "border-zinc-700 bg-[var(--dash-field)]"}`}>
                           {grantForm.hasMealPlan && <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><polyline points="20 6 9 17 4 12" /></svg>}
                         </div>
                       </button>
@@ -1124,7 +1154,7 @@ export default function AdminPanelPage() {
                 </div>
               </div>
 
-              <div className="flex justify-end pt-2 border-t border-zinc-900">
+              <div className="flex justify-end pt-2 border-t border-[var(--dash-divider)]">
                 <button onClick={grantSubscription} disabled={isGranting || !grantForm.selectedUserId}
                   className="px-6 py-2.5 bg-red-500 hover:bg-red-600 rounded-xl text-xs font-black uppercase text-white tracking-wider transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 shadow-lg shadow-red-500/20">
                   {isGranting && <Spinner />}
@@ -1136,17 +1166,17 @@ export default function AdminPanelPage() {
           {activeSection === "server" && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-fadeIn">
               <div onMouseMove={handleMouseMove} className="premium-glow-card rounded-2xl p-4 lg:p-6 space-y-3">
-                <div className="flex justify-between items-center border-b border-zinc-900 pb-2">
+                <div className="flex justify-between items-center border-b border-[var(--dash-divider)] pb-2">
                   <h3 className="text-xs font-black text-white uppercase tracking-widest">SERVER LOGS</h3>
                   <div className="space-x-2">
                     <button onClick={fetchLogs} className="text-[10px] text-zinc-400 hover:text-white font-bold">Refresh</button>
                     <button onClick={clearLogs} className="text-[10px] text-red-400 hover:text-red-500 font-bold">Clear</button>
                   </div>
                 </div>
-                <div className="bg-[#040406] border border-zinc-900 rounded-xl p-4 font-mono text-[11px] text-zinc-400 h-64 overflow-y-auto space-y-1">
+                <div className="bg-[#040406] border border-[var(--dash-divider)] rounded-xl p-4 font-mono text-[11px] text-zinc-400 h-64 overflow-y-auto space-y-1">
                   {isLogsLoading ? (
                     <div className="space-y-2">
-                      {Array.from({ length: 6 }).map((_, i) => <div key={i} className="h-3.5 bg-zinc-800/60 animate-pulse rounded" style={{ width: `${60 + Math.random() * 30}%` }} />)}
+                      {Array.from({ length: 6 }).map((_, i) => <div key={i} className="h-3.5 bg-zinc-800/60 animate-pulse rounded" style={{ width: LOG_SKELETON_WIDTHS[i % LOG_SKELETON_WIDTHS.length] }} />)}
                     </div>
                   ) : logs.length === 0 ? (
                     <div className="text-zinc-600">No logs to display.</div>
@@ -1166,15 +1196,15 @@ export default function AdminPanelPage() {
               </div>
 
               <div onMouseMove={handleMouseMove} className="premium-glow-card rounded-2xl p-4 lg:p-6 space-y-3">
-                <div className="flex justify-between items-center border-b border-zinc-900 pb-2">
+                <div className="flex justify-between items-center border-b border-[var(--dash-divider)] pb-2">
                   <h3 className="text-xs font-black text-white uppercase tracking-widest">SYSTEM INFO</h3>
                   <button onClick={fetchSystemInfo} className="text-[10px] text-zinc-400 hover:text-white font-bold">Refresh</button>
                 </div>
-                <div className="bg-[#040406] border border-zinc-900 rounded-xl p-4 font-mono text-[11px] text-zinc-400 h-64 space-y-2">
+                <div className="bg-[#040406] border border-[var(--dash-divider)] rounded-xl p-4 font-mono text-[11px] text-zinc-400 h-64 space-y-2">
                   {isSysInfoLoading ? (
                     <div className="space-y-2 py-2">
                       {Array.from({ length: 4 }).map((_, i) => (
-                        <div key={i} className="h-3.5 bg-zinc-800/60 animate-pulse rounded" style={{ width: `${55 + Math.random() * 25}%` }} />
+                        <div key={i} className="h-3.5 bg-zinc-800/60 animate-pulse rounded" style={{ width: SYS_SKELETON_WIDTHS[i % SYS_SKELETON_WIDTHS.length] }} />
                       ))}
                     </div>
                   ) : sysInfo ? (
@@ -1206,16 +1236,16 @@ export default function AdminPanelPage() {
       {/* --- ADD CLASS MODAL --- */}
       {isClassModalOpen && (
         <div className="fixed inset-0 bg-black/75 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-[#0b0b0e] border border-zinc-800 rounded-2xl p-5 lg:p-6 w-full max-w-sm space-y-4 animate-fadeIn">
+          <div className="bg-[var(--dash-panel)] border border-[var(--dash-border)] rounded-2xl p-5 lg:p-6 w-full max-w-sm space-y-4 animate-fadeIn">
             <h3 className="text-sm font-black text-white uppercase tracking-wider">Add New Class</h3>
             <div className="space-y-3">
               <div>
                 <label className="text-[10px] font-bold text-zinc-500 uppercase block mb-1">Class Title</label>
-                <input type="text" value={newClass.title} onChange={e => setNewClass({ ...newClass, title: e.target.value })} disabled={isCreatingClass} className="w-full bg-[#121216] border border-zinc-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-red-500 disabled:opacity-50 disabled:cursor-not-allowed" placeholder="e.g. Iron Pump" />
+                <input type="text" value={newClass.title} onChange={e => setNewClass({ ...newClass, title: e.target.value })} disabled={isCreatingClass} className="w-full bg-[var(--dash-field)] border border-[var(--dash-border)] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-red-500 disabled:opacity-50 disabled:cursor-not-allowed" placeholder="e.g. Iron Pump" />
               </div>
               <div>
                 <label className="text-[10px] font-bold text-zinc-500 uppercase block mb-1">Instructor</label>
-                <select value={newClass.coachId} onChange={e => setNewClass({ ...newClass, coachId: e.target.value })} disabled={isCreatingClass} className="select-dark w-full bg-[#121216] border border-zinc-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed">
+                <select value={newClass.coachId} onChange={e => setNewClass({ ...newClass, coachId: e.target.value })} disabled={isCreatingClass} className="select-dark w-full bg-[var(--dash-field)] border border-[var(--dash-border)] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed">
                   <option value="">-- Select Coach --</option>
                   {coaches.map((coach) => (<option key={coach.id} value={coach.id}>{coach.name}</option>))}
                 </select>
@@ -1223,7 +1253,7 @@ export default function AdminPanelPage() {
               </div>
               <div>
                 <label className="text-[10px] font-bold text-zinc-500 uppercase block mb-1">Schedule</label>
-                <input type="text" value={newClass.time} onChange={e => setNewClass({ ...newClass, time: e.target.value })} disabled={isCreatingClass} className="w-full bg-[#121216] border border-zinc-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-red-500 disabled:opacity-50 disabled:cursor-not-allowed" placeholder="e.g. Mon/Wed 6-7PM" />
+                <input type="text" value={newClass.time} onChange={e => setNewClass({ ...newClass, time: e.target.value })} disabled={isCreatingClass} className="w-full bg-[var(--dash-field)] border border-[var(--dash-border)] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-red-500 disabled:opacity-50 disabled:cursor-not-allowed" placeholder="e.g. Mon/Wed 6-7PM" />
               </div>
             </div>
             <div className="flex gap-2 justify-end pt-2">
@@ -1240,23 +1270,23 @@ export default function AdminPanelPage() {
       {/* --- EDIT CLASS MODAL --- */}
       {isEditClassModalOpen && editingClass && (
         <div className="fixed inset-0 bg-black/75 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-[#0b0b0e] border border-zinc-800 rounded-2xl p-5 lg:p-6 w-full max-w-sm space-y-4 animate-fadeIn">
+          <div className="bg-[var(--dash-panel)] border border-[var(--dash-border)] rounded-2xl p-5 lg:p-6 w-full max-w-sm space-y-4 animate-fadeIn">
             <h3 className="text-sm font-black text-white uppercase tracking-wider">Edit Class</h3>
             <div className="space-y-3">
               <div>
                 <label className="text-[10px] font-bold text-zinc-500 uppercase block mb-1">Class Title</label>
-                <input type="text" value={editingClass.title} onChange={e => setEditingClass({ ...editingClass, title: e.target.value })} disabled={isEditingClass} className="w-full bg-[#121216] border border-zinc-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-red-500 disabled:opacity-50 disabled:cursor-not-allowed" />
+                <input type="text" value={editingClass.title} onChange={e => setEditingClass({ ...editingClass, title: e.target.value })} disabled={isEditingClass} className="w-full bg-[var(--dash-field)] border border-[var(--dash-border)] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-red-500 disabled:opacity-50 disabled:cursor-not-allowed" />
               </div>
               <div>
                 <label className="text-[10px] font-bold text-zinc-500 uppercase block mb-1">Instructor</label>
-                <select value={editingClass.coachId || ""} onChange={e => setEditingClass({ ...editingClass, coachId: e.target.value })} disabled={isEditingClass} className="select-dark w-full bg-[#121216] border border-zinc-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed">
+                <select value={editingClass.coachId || ""} onChange={e => setEditingClass({ ...editingClass, coachId: e.target.value })} disabled={isEditingClass} className="select-dark w-full bg-[var(--dash-field)] border border-[var(--dash-border)] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed">
                   <option value="">-- Select Coach --</option>
                   {coaches.map((coach) => (<option key={coach.id} value={coach.id}>{coach.name}</option>))}
                 </select>
               </div>
               <div>
                 <label className="text-[10px] font-bold text-zinc-500 uppercase block mb-1">Schedule</label>
-                <input type="text" value={editingClass.time} onChange={e => setEditingClass({ ...editingClass, time: e.target.value })} disabled={isEditingClass} className="w-full bg-[#121216] border border-zinc-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-red-500 disabled:opacity-50 disabled:cursor-not-allowed" />
+                <input type="text" value={editingClass.time} onChange={e => setEditingClass({ ...editingClass, time: e.target.value })} disabled={isEditingClass} className="w-full bg-[var(--dash-field)] border border-[var(--dash-border)] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-red-500 disabled:opacity-50 disabled:cursor-not-allowed" />
               </div>
             </div>
             <div className="flex gap-2 justify-end pt-2">
@@ -1273,16 +1303,16 @@ export default function AdminPanelPage() {
       {/* --- ADD EQUIPMENT MODAL --- */}
       {isEquipModalOpen && (
         <div className="fixed inset-0 bg-black/75 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-[#0b0b0e] border border-zinc-800 rounded-2xl p-5 lg:p-6 w-full max-w-sm space-y-4 animate-fadeIn">
+          <div className="bg-[var(--dash-panel)] border border-[var(--dash-border)] rounded-2xl p-5 lg:p-6 w-full max-w-sm space-y-4 animate-fadeIn">
             <h3 className="text-sm font-black text-white uppercase tracking-wider">Add Equipment</h3>
             <div className="space-y-3">
               <div>
                 <label className="text-[10px] font-bold text-zinc-500 uppercase block mb-1">Equipment Name</label>
-                <input type="text" value={newEquip.name} onChange={e => setNewEquip({ ...newEquip, name: e.target.value })} disabled={isCreatingEquipment} className="w-full bg-[#121216] border border-zinc-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-red-500 disabled:opacity-50 disabled:cursor-not-allowed" placeholder="e.g. Treadmill #4" />
+                <input type="text" value={newEquip.name} onChange={e => setNewEquip({ ...newEquip, name: e.target.value })} disabled={isCreatingEquipment} className="w-full bg-[var(--dash-field)] border border-[var(--dash-border)] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-red-500 disabled:opacity-50 disabled:cursor-not-allowed" placeholder="e.g. Treadmill #4" />
               </div>
               <div>
                 <label className="text-[10px] font-bold text-zinc-500 uppercase block mb-1">Status</label>
-                <select value={newEquip.status} onChange={e => setNewEquip({ ...newEquip, status: e.target.value })} disabled={isCreatingEquipment} className="select-dark w-full bg-[#121216] border border-zinc-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed">
+                <select value={newEquip.status} onChange={e => setNewEquip({ ...newEquip, status: e.target.value })} disabled={isCreatingEquipment} className="select-dark w-full bg-[var(--dash-field)] border border-[var(--dash-border)] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed">
                   <option value="Operational">Operational</option>
                   <option value="Under Repair">Under Repair</option>
                   <option value="Out of Order">Out of Order</option>
@@ -1303,16 +1333,16 @@ export default function AdminPanelPage() {
       {/* --- MANAGE CLASS STUDENTS MODAL --- */}
       {isStudentsModalOpen && selectedClass && (
         <div className="fixed inset-0 bg-black/75 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setShowSuggestions(false)}>
-          <div className="bg-[#0b0b0e] border border-zinc-800 rounded-2xl p-5 lg:p-6 w-full max-w-md space-y-4 animate-fadeIn" onClick={e => e.stopPropagation()}>
+          <div className="bg-[var(--dash-panel)] border border-[var(--dash-border)] rounded-2xl p-5 lg:p-6 w-full max-w-md space-y-4 animate-fadeIn" onClick={e => e.stopPropagation()}>
             <div>
               <h3 className="text-sm font-black text-white uppercase tracking-wider">Manage Members: {selectedClass.title}</h3>
               <p className="text-[10px] text-zinc-500 font-bold uppercase mt-0.5">Add or remove members from this class</p>
             </div>
 
-            <div className="max-h-40 overflow-y-auto space-y-1.5 border-y border-zinc-900/80 py-3 pr-1">
+            <div className="max-h-40 overflow-y-auto space-y-1.5 border-y border-[var(--dash-divider)] py-3 pr-1">
               {safeGetStudents(selectedClass).length > 0 ? (
-                safeGetStudents(selectedClass).map((student: any) => (
-                  <div key={student.id} className="flex justify-between items-center bg-[#121216] p-2.5 rounded-xl border border-zinc-900/60">
+                safeGetStudents(selectedClass).map((student) => (
+                  <div key={student.id} className="flex justify-between items-center bg-[var(--dash-field)] p-2.5 rounded-xl border border-[var(--dash-divider)]">
                     <div className="text-xs">
                       <div className="font-bold text-white">{student.name || "Unknown"}</div>
                       <div className="text-[10px] text-zinc-500">{student.email}</div>
@@ -1328,12 +1358,12 @@ export default function AdminPanelPage() {
             <div className="space-y-2 relative">
               <label className="text-[10px] font-bold text-zinc-500 uppercase block">Search Member (Name or Email)</label>
               <div className="flex gap-2">
-                <input type="text" value={studentSearch} onChange={e => { setStudentSearch(e.target.value); setShowSuggestions(true); }} onFocus={() => setShowSuggestions(true)} disabled={isEnrollingStudent} className="flex-1 bg-[#121216] border border-zinc-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-red-500 disabled:opacity-50 disabled:cursor-not-allowed" placeholder="Type name or email..." />
+                <input type="text" value={studentSearch} onChange={e => { setStudentSearch(e.target.value); setShowSuggestions(true); }} onFocus={() => setShowSuggestions(true)} disabled={isEnrollingStudent} className="flex-1 bg-[var(--dash-field)] border border-[var(--dash-border)] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-red-500 disabled:opacity-50 disabled:cursor-not-allowed" placeholder="Type name or email..." />
               </div>
               {showSuggestions && studentSearch.trim() && filteredStudents.length > 0 && (
-                <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-[#121216] border border-zinc-800 rounded-xl max-h-40 overflow-y-auto shadow-xl">
+                <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-[var(--dash-field)] border border-[var(--dash-border)] rounded-xl max-h-40 overflow-y-auto shadow-xl">
                   {filteredStudents.slice(0, 8).map((u) => (
-                    <button key={u.id} onClick={() => { addStudentToClass(u.email); }} disabled={isEnrollingStudent} className="w-full text-left px-3 py-2 text-xs hover:bg-zinc-800/60 transition-colors flex items-center gap-2 border-b border-zinc-900/40 last:border-0 disabled:opacity-50 disabled:cursor-not-allowed">
+                    <button key={u.id} onClick={() => { addStudentToClass(u.email); }} disabled={isEnrollingStudent} className="w-full text-left px-3 py-2 text-xs hover:bg-zinc-800/60 transition-colors flex items-center gap-2 border-b border-[var(--dash-divider)] last:border-0 disabled:opacity-50 disabled:cursor-not-allowed">
                       <div>
                         <div className="font-bold text-white">{u.name}</div>
                         <div className="text-[10px] text-zinc-500">{u.email}</div>
@@ -1343,7 +1373,7 @@ export default function AdminPanelPage() {
                 </div>
               )}
               {showSuggestions && studentSearch.trim() && filteredStudents.length === 0 && (
-                <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-[#121216] border border-zinc-800 rounded-xl px-3 py-3 text-xs text-zinc-500 shadow-xl">
+                <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-[var(--dash-field)] border border-[var(--dash-border)] rounded-xl px-3 py-3 text-xs text-zinc-500 shadow-xl">
                   No members found matching &quot;{studentSearch}&quot;
                 </div>
               )}
@@ -1359,16 +1389,16 @@ export default function AdminPanelPage() {
       {/* --- EDIT EQUIPMENT MODAL (replaces Swal) --- */}
       {editEquipState.open && (
         <div className="fixed inset-0 bg-black/75 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-[#0b0b0e] border border-zinc-800 rounded-2xl p-5 lg:p-6 w-full max-w-sm space-y-4 animate-fadeIn">
+          <div className="bg-[var(--dash-panel)] border border-[var(--dash-border)] rounded-2xl p-5 lg:p-6 w-full max-w-sm space-y-4 animate-fadeIn">
             <h3 className="text-sm font-black text-white uppercase tracking-wider">Edit Equipment</h3>
             <div className="space-y-3">
               <div>
                 <label className="text-[10px] font-bold text-zinc-500 uppercase block mb-1">Equipment Name</label>
-                <input type="text" value={editEquipState.name} onChange={e => setEditEquipState(s => ({ ...s, name: e.target.value }))} className="w-full bg-[#121216] border border-zinc-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-red-500" />
+                <input type="text" value={editEquipState.name} onChange={e => setEditEquipState(s => ({ ...s, name: e.target.value }))} className="w-full bg-[var(--dash-field)] border border-[var(--dash-border)] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-red-500" />
               </div>
               <div>
                 <label className="text-[10px] font-bold text-zinc-500 uppercase block mb-1">Status</label>
-                <select value={editEquipState.status} onChange={e => setEditEquipState(s => ({ ...s, status: e.target.value }))} className="select-dark w-full bg-[#121216] border border-zinc-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-transparent">
+                <select value={editEquipState.status} onChange={e => setEditEquipState(s => ({ ...s, status: e.target.value }))} className="select-dark w-full bg-[var(--dash-field)] border border-[var(--dash-border)] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-transparent">
                   <option value="Operational">Operational</option>
                   <option value="Under Repair">Under Repair</option>
                   <option value="Out of Order">Out of Order</option>
@@ -1386,14 +1416,14 @@ export default function AdminPanelPage() {
       {/* --- MANAGE SUBSCRIPTION MODAL --- */}
       {manageSubState.open && manageSubState.user && (
         <div className="fixed inset-0 bg-black/75 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-[#0b0b0e] border border-zinc-800 rounded-2xl p-5 lg:p-6 w-full max-w-md space-y-5 animate-fadeIn max-h-[90vh] overflow-y-auto">
+          <div className="bg-[var(--dash-panel)] border border-[var(--dash-border)] rounded-2xl p-5 lg:p-6 w-full max-w-md space-y-5 animate-fadeIn max-h-[90vh] overflow-y-auto">
             <div>
               <h3 className="text-sm font-black text-white uppercase tracking-wider">Manage Subscription</h3>
               <p className="text-[10px] text-zinc-500 font-bold mt-0.5">{manageSubState.user.name} &bull; {manageSubState.user.email}</p>
             </div>
 
             {manageSubState.user.subscription && (
-              <div className="bg-[#121216] border border-zinc-800 rounded-xl p-3 space-y-1.5">
+              <div className="bg-[var(--dash-field)] border border-[var(--dash-border)] rounded-xl p-3 space-y-1.5">
                 <div className="flex justify-between text-[10px]">
                   <span className="text-zinc-500">Current Plan</span>
                   <span className="text-white font-bold">{manageSubState.user.subscription.planType}</span>
@@ -1412,7 +1442,7 @@ export default function AdminPanelPage() {
             <div className="space-y-3">
               <div>
                 <label className="text-[10px] font-bold text-zinc-500 uppercase block mb-1">Plan Type</label>
-                <select value={manageSubForm.planType} onChange={e => setManageSubForm(f => ({ ...f, planType: e.target.value }))} disabled={isSavingSub} className="select-dark w-full bg-[#121216] border border-zinc-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-transparent disabled:opacity-50">
+                <select value={manageSubForm.planType} onChange={e => setManageSubForm(f => ({ ...f, planType: e.target.value }))} disabled={isSavingSub} className="select-dark w-full bg-[var(--dash-field)] border border-[var(--dash-border)] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-transparent disabled:opacity-50">
                   <option value="DAILY">Daily Pass (1 day)</option>
                   <option value="WEEKLY">Weekly Pass (7 days)</option>
                   <option value="MONTHLY">Monthly (30 days)</option>
@@ -1425,22 +1455,22 @@ export default function AdminPanelPage() {
                 <label className="text-[10px] font-bold text-zinc-500 uppercase block mb-2">Add-ons</label>
                 <div className="space-y-2">
                   <button onClick={() => setManageSubForm(f => ({ ...f, hasPrivateCoach: !f.hasPrivateCoach }))} disabled={isSavingSub}
-                    className={`w-full flex items-center justify-between p-3 rounded-xl border transition-all disabled:opacity-50 ${manageSubForm.hasPrivateCoach ? "bg-blue-500/10 border-blue-500/50" : "bg-[#121216] border-zinc-800 hover:border-zinc-700"}`}>
+                    className={`w-full flex items-center justify-between p-3 rounded-xl border transition-all disabled:opacity-50 ${manageSubForm.hasPrivateCoach ? "bg-blue-500/10 border-blue-500/50" : "bg-[var(--dash-field)] border-[var(--dash-border)] hover:border-zinc-700"}`}>
                     <div className="text-left">
                       <div className="text-xs font-black text-white">Private Coach</div>
                       <div className="text-[10px] text-zinc-500 font-bold">1-on-1 dedicated training</div>
                     </div>
-                    <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all ${manageSubForm.hasPrivateCoach ? "bg-blue-500 border-blue-500" : "border-zinc-700 bg-[#121216]"}`}>
+                    <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all ${manageSubForm.hasPrivateCoach ? "bg-blue-500 border-blue-500" : "border-zinc-700 bg-[var(--dash-field)]"}`}>
                       {manageSubForm.hasPrivateCoach && <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><polyline points="20 6 9 17 4 12" /></svg>}
                     </div>
                   </button>
                   <button onClick={() => setManageSubForm(f => ({ ...f, hasMealPlan: !f.hasMealPlan }))} disabled={isSavingSub}
-                    className={`w-full flex items-center justify-between p-3 rounded-xl border transition-all disabled:opacity-50 ${manageSubForm.hasMealPlan ? "bg-emerald-500/10 border-emerald-500/50" : "bg-[#121216] border-zinc-800 hover:border-zinc-700"}`}>
+                    className={`w-full flex items-center justify-between p-3 rounded-xl border transition-all disabled:opacity-50 ${manageSubForm.hasMealPlan ? "bg-emerald-500/10 border-emerald-500/50" : "bg-[var(--dash-field)] border-[var(--dash-border)] hover:border-zinc-700"}`}>
                     <div className="text-left">
                       <div className="text-xs font-black text-white">Meal Plan</div>
                       <div className="text-[10px] text-zinc-500 font-bold">Custom nutrition & macro guidance</div>
                     </div>
-                    <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all ${manageSubForm.hasMealPlan ? "bg-emerald-500 border-emerald-500" : "border-zinc-700 bg-[#121216]"}`}>
+                    <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all ${manageSubForm.hasMealPlan ? "bg-emerald-500 border-emerald-500" : "border-zinc-700 bg-[var(--dash-field)]"}`}>
                       {manageSubForm.hasMealPlan && <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><polyline points="20 6 9 17 4 12" /></svg>}
                     </div>
                   </button>
@@ -1450,14 +1480,14 @@ export default function AdminPanelPage() {
               <div>
                 <label className="text-[10px] font-bold text-zinc-500 uppercase block mb-1">Custom Gift Extension</label>
                 <div className="flex gap-2">
-                  <input type="number" min="1" max="365" value={manageSubForm.giftDays} onChange={e => setManageSubForm(f => ({ ...f, giftDays: e.target.value }))} disabled={isSavingSub} placeholder="e.g. 10" className="flex-1 bg-[#121216] border border-zinc-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-red-500 disabled:opacity-50" />
+                  <input type="number" min="1" max="365" value={manageSubForm.giftDays} onChange={e => setManageSubForm(f => ({ ...f, giftDays: e.target.value }))} disabled={isSavingSub} placeholder="e.g. 10" className="flex-1 bg-[var(--dash-field)] border border-[var(--dash-border)] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-red-500 disabled:opacity-50" />
                   <span className="text-[10px] text-zinc-500 font-bold self-center">days</span>
                 </div>
                 <p className="text-[9px] text-zinc-600 mt-1">Extends the user&apos;s current end date by this many days.</p>
               </div>
             </div>
 
-            <div className="flex gap-2 justify-end pt-2 border-t border-zinc-900">
+            <div className="flex gap-2 justify-end pt-2 border-t border-[var(--dash-divider)]">
               <button onClick={() => setManageSubState({ open: false, user: null })} disabled={isSavingSub} className="px-4 py-2 bg-zinc-900 hover:bg-zinc-800 rounded-xl text-xs font-bold text-zinc-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">Cancel</button>
               <button onClick={saveManagedSubscription} disabled={isSavingSub} className="px-4 py-2 bg-red-500 hover:bg-red-600 rounded-xl text-xs font-black uppercase text-white tracking-wider transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2">
                 {isSavingSub && <Spinner />}
@@ -1481,6 +1511,7 @@ export default function AdminPanelPage() {
 
       {/* --- EDIT ROLE MODAL --- */}
       <EditRoleModal
+        key={`${editRoleState.userName}-${editRoleState.currentRole}`}
         open={editRoleState.open}
         userName={editRoleState.userName}
         currentRole={editRoleState.currentRole}

@@ -1,19 +1,19 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { db, isDbReady } from "@/lib/db";
+import { resolveUserIdFromToken } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
 async function resolveUserId(request: Request | undefined, bodyUserId?: string): Promise<string | null> {
-  if (bodyUserId && typeof bodyUserId === "string" && bodyUserId.trim().length > 0) {
-    return bodyUserId.trim();
-  }
-
+  // 1) The session cookie is the authoritative source. It holds a
+  //    "userId.role.signature" token — parse it to recover the real user id.
   try {
     const cookieStore = await cookies();
     const sessionVal = cookieStore.get("session")?.value;
     if (sessionVal && sessionVal.trim().length > 0) {
-      return sessionVal.trim();
+      const userId = await resolveUserIdFromToken(sessionVal);
+      if (userId) return userId;
     }
   } catch { /* cookies unavailable */ }
 
@@ -22,9 +22,15 @@ async function resolveUserId(request: Request | undefined, bodyUserId?: string):
     if (cookieHeader) {
       const match = cookieHeader.match(/session=([^;]+)/);
       if (match && match[1].trim().length > 0) {
-        return match[1].trim();
+        const userId = await resolveUserIdFromToken(match[1]);
+        if (userId) return userId;
       }
     }
+  }
+
+  // 2) Fallback to the body-provided id (development / sessionless clients).
+  if (bodyUserId && typeof bodyUserId === "string" && bodyUserId.trim().length > 0) {
+    return bodyUserId.trim();
   }
 
   return null;

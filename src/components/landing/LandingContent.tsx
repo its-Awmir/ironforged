@@ -6,6 +6,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { ToastContainer, showToast } from "@/components/Toast";
 import ConfirmModal from "@/components/ConfirmModal";
+import ThemeToggle from "@/components/ThemeToggle";
 
 interface UserData {
   id: string;
@@ -23,7 +24,7 @@ export default function HomePage() {
 
   const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
   const [userFirstName, setUserFirstName] = useState<string>("");
-  const [userRole, setUserRole] = useState<string>("Member");
+  const [userRole] = useState<string>("Member");
 
   const [contactName, setContactName] = useState<string>("");
   const [contactEmail, setContactEmail] = useState<string>("");
@@ -38,26 +39,24 @@ export default function HomePage() {
   const [showLogoutModal, setShowLogoutModal] = useState(false);
 
   useEffect(() => {
-    const handleScroll = () => {
-      setIsScrolled(window.scrollY > 50);
-      const docHeight = document.documentElement.scrollHeight - window.innerHeight;
-      const scrollPercent = docHeight > 0 ? (window.scrollY / docHeight) * 100 : 0;
-      setScrollWidth(`${scrollPercent}%`);
-    };
-
     const loggedIn = localStorage.getItem("isLoggedIn") === "true";
     const userRaw = localStorage.getItem("currentUser");
     if (loggedIn && userRaw) {
       try {
         const userData: UserData = JSON.parse(userRaw);
         setIsLoggedIn(true);
-        const firstName = (userData.name || "Athlete").split(" ")[0].toUpperCase();
-        setUserFirstName(firstName);
-        setUserRole(userData.role || "Member");
-      } catch (err) {
-        console.error("Error parsing profile data", err);
-      }
+        setUserFirstName((userData.name || "Athlete").split(" ")[0].toUpperCase());
+      } catch { /* ignore malformed profile */ }
     }
+  }, []);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 50);
+      const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+      const scrollPercent = docHeight > 0 ? (window.scrollY / docHeight) * 100 : 0;
+      setScrollWidth(`${scrollPercent}%`);
+    };
 
     const animateCounters = () => {
       let currentYear = 0;
@@ -139,7 +138,7 @@ export default function HomePage() {
   };
 
   return (
-    <div className="min-h-screen bg-black text-zinc-100 font-sans scroll-smooth">
+    <div className="min-h-screen bg-bg text-slate-primary font-sans scroll-smooth">
 
       {/* Skip to content link for keyboard/AT users */}
       <a
@@ -193,6 +192,7 @@ export default function HomePage() {
           </ul>
 
           <div className="w-full md:w-auto pt-6 md:pt-0 border-t border-border md:border-0 flex flex-col md:flex-row gap-4 items-stretch md:items-center">
+            <ThemeToggle />
             {isLoggedIn ? (
               <div className="flex items-center gap-4 bg-bg-panel/80 border border-border rounded-xl px-4 py-2">
                 <Link href={getTargetPage(userRole)} className="text-xs font-bold text-slate-primary uppercase flex items-center gap-2 tracking-wide hover:text-verdigris-light transition-colors">
@@ -251,7 +251,7 @@ export default function HomePage() {
       </section>
 
       {/* Our Legacy */}
-      <section id="legacy" aria-labelledby="legacy-heading" className="py-24 px-6 md:px-16 max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-12 items-center border-t border-zinc-900">
+      <section id="legacy" aria-labelledby="legacy-heading" className="py-24 px-6 md:px-16 max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-12 items-center border-t border-border">
         <div className="overflow-hidden rounded-3xl border border-border shadow-2xl">
           <Image
             src="https://images.unsplash.com/photo-1517836357463-d25dfeac3438?q=80&w=800"
@@ -263,59 +263,59 @@ export default function HomePage() {
         </div>
         <div className="flex flex-col items-start">
           <span className="text-xs font-bold text-verdigris-light uppercase tracking-widest mb-3">OUR LEGACY</span>
-          <h2 id="legacy-heading" className="text-3xl md:text-4xl font-black text-white uppercase tracking-tight mb-4">
+          <h2 id="legacy-heading" className="text-3xl md:text-4xl font-black text-slate-primary uppercase tracking-tight mb-4">
             FROM GROUND UP TO A <span className="text-verdigris-light">GLOBAL</span> STANDARD
           </h2>
-          <p className="text-zinc-400 text-sm leading-relaxed mb-8">From a single training floor to a worldwide standard. MERIDIAN has always been about results and uncompromised precision.</p>
+          <p className="text-slate-muted text-sm leading-relaxed mb-8">From a single training floor to a worldwide standard. MERIDIAN has always been about results and uncompromised precision.</p>
 
-          <div className="grid grid-cols-3 gap-6 md:gap-10 w-full pt-6 border-t border-zinc-900">
+          <div className="grid grid-cols-3 gap-6 md:gap-10 w-full pt-6 border-t border-border">
             <div>
               <div className="text-3xl md:text-4xl font-black text-verdigris-light mb-1">{years.toLocaleString()}</div>
-              <div className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Years</div>
+              <div className="text-[10px] font-bold text-slate-subtle uppercase tracking-wider">Years</div>
             </div>
             <div>
               <div className="text-3xl md:text-4xl font-black text-verdigris-light mb-1">{members.toLocaleString()}+</div>
-              <div className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Members</div>
+              <div className="text-[10px] font-bold text-slate-subtle uppercase tracking-wider">Members</div>
             </div>
             <div>
               <div className="text-3xl md:text-4xl font-black text-verdigris-light mb-1">{facilities.toLocaleString()}</div>
-              <div className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Facilities</div>
+              <div className="text-[10px] font-bold text-slate-subtle uppercase tracking-wider">Facilities</div>
             </div>
           </div>
         </div>
       </section>
 
       {/* Features */}
-      <section id="services" aria-labelledby="services-heading" className="py-24 bg-zinc-950 px-6 md:px-12 border-t border-zinc-900">
+      <section id="services" aria-labelledby="services-heading" className="py-24 bg-bg-deep px-6 md:px-12 border-t border-border">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
-            <h2 id="services-heading" className="text-3xl md:text-4xl font-black text-white uppercase tracking-tight">SYSTEM FEATURES</h2>
-            <p className="text-zinc-500 text-xs uppercase tracking-widest mt-2">Engineered for absolute performance</p>
+            <h2 id="services-heading" className="text-3xl md:text-4xl font-black text-slate-primary uppercase tracking-tight">SYSTEM FEATURES</h2>
+            <p className="text-slate-subtle text-xs uppercase tracking-widest mt-2">Engineered for absolute performance</p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div onClick={handleGetStarted} className="group p-8 rounded-2xl bg-zinc-900/40 border border-zinc-800/60 hover:border-verdigris/40 cursor-pointer transition-all hover:-translate-y-1">
-              <div className="w-12 h-12 rounded-xl bg-zinc-900 flex items-center justify-center text-verdigris-light border border-zinc-800 mb-6 group-hover:bg-verdigris group-hover:text-white transition-all">
+            <div onClick={handleGetStarted} className="group p-8 rounded-2xl bg-bg-panel/40 border border-border hover:border-verdigris/40 cursor-pointer transition-all hover:-translate-y-1">
+              <div className="w-12 h-12 rounded-xl bg-bg-panel flex items-center justify-center text-verdigris-light border border-border mb-6 group-hover:bg-verdigris group-hover:text-white transition-all">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>
               </div>
-              <h3 className="text-lg font-bold text-white mb-2">Membership</h3>
-              <p className="text-zinc-400 text-sm leading-relaxed">Cloud-based member tracking and automated subscription renewals with real-time analytics.</p>
+              <h3 className="text-lg font-bold text-slate-primary mb-2">Membership</h3>
+              <p className="text-slate-muted text-sm leading-relaxed">Cloud-based member tracking and automated subscription renewals with real-time analytics.</p>
             </div>
 
-            <div onClick={handleGetStarted} className="group p-8 rounded-2xl bg-zinc-900/40 border border-zinc-800/60 hover:border-verdigris/40 cursor-pointer transition-all hover:-translate-y-1">
-              <div className="w-12 h-12 rounded-xl bg-zinc-900 flex items-center justify-center text-verdigris-light border border-zinc-800 mb-6 group-hover:bg-verdigris group-hover:text-white transition-all">
+            <div onClick={handleGetStarted} className="group p-8 rounded-2xl bg-bg-panel/40 border border-border hover:border-verdigris/40 cursor-pointer transition-all hover:-translate-y-1">
+              <div className="w-12 h-12 rounded-xl bg-bg-panel flex items-center justify-center text-verdigris-light border border-border mb-6 group-hover:bg-verdigris group-hover:text-white transition-all">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><line x1="18" y1="20" x2="18" y2="10" /><line x1="12" y1="20" x2="12" y2="4" /><line x1="6" y1="20" x2="6" y2="14" /><line x1="2" y1="20" x2="22" y2="20" /></svg>
               </div>
-              <h3 className="text-lg font-bold text-white mb-2">Analytics</h3>
-              <p className="text-zinc-400 text-sm leading-relaxed">Track your gym&apos;s growth and member retention with smart charts and AI-driven insights.</p>
+              <h3 className="text-lg font-bold text-slate-primary mb-2">Analytics</h3>
+              <p className="text-slate-muted text-sm leading-relaxed">Track your gym&apos;s growth and member retention with smart charts and AI-driven insights.</p>
             </div>
 
-            <div onClick={handleGetStarted} className="group p-8 rounded-2xl bg-zinc-900/40 border border-zinc-800/60 hover:border-verdigris/40 cursor-pointer transition-all hover:-translate-y-1">
-              <div className="w-12 h-12 rounded-xl bg-zinc-900 flex items-center justify-center text-verdigris-light border border-zinc-800 mb-6 group-hover:bg-verdigris group-hover:text-white transition-all">
+            <div onClick={handleGetStarted} className="group p-8 rounded-2xl bg-bg-panel/40 border border-border hover:border-verdigris/40 cursor-pointer transition-all hover:-translate-y-1">
+              <div className="w-12 h-12 rounded-xl bg-bg-panel flex items-center justify-center text-verdigris-light border border-border mb-6 group-hover:bg-verdigris group-hover:text-white transition-all">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="3" y="11" width="18" height="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>
               </div>
-              <h3 className="text-lg font-bold text-white mb-2">Security</h3>
-              <p className="text-zinc-400 text-sm leading-relaxed">High-end encryption for all athlete data and facility access with 24/7 monitoring.</p>
+              <h3 className="text-lg font-bold text-slate-primary mb-2">Security</h3>
+              <p className="text-slate-muted text-sm leading-relaxed">High-end encryption for all athlete data and facility access with 24/7 monitoring.</p>
             </div>
           </div>
         </div>
@@ -324,15 +324,15 @@ export default function HomePage() {
       {/* Contact Form */}
       <section id="contact" aria-labelledby="contact-heading" className="py-24 max-w-7xl mx-auto px-6 md:px-12">
         <div className="text-center mb-16">
-          <h2 id="contact-heading" className="text-3xl md:text-4xl font-black text-white uppercase tracking-tight">GET IN TOUCH</h2>
-          <p className="text-zinc-500 text-xs uppercase tracking-widest mt-2">We are here to answer your questions</p>
+          <h2 id="contact-heading" className="text-3xl md:text-4xl font-black text-slate-primary uppercase tracking-tight">GET IN TOUCH</h2>
+          <p className="text-slate-subtle text-xs uppercase tracking-widest mt-2">We are here to answer your questions</p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-12 bg-zinc-950 border border-zinc-900 rounded-3xl p-8 md:p-12 shadow-2xl">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-12 bg-bg-panel border border-border rounded-3xl p-8 md:p-12 shadow-2xl">
           <div className="md:col-span-2 space-y-6 flex flex-col justify-between">
             <div>
-              <h3 className="text-xl font-extrabold text-white uppercase tracking-wider mb-6">CONTACT INFO</h3>
-              <div className="space-y-4 text-sm text-zinc-400">
+              <h3 className="text-xl font-extrabold text-slate-primary uppercase tracking-wider mb-6">CONTACT INFO</h3>
+              <div className="space-y-4 text-sm text-slate-muted">
                 <p className="flex items-center gap-3">
                   <svg className="text-verdigris-light shrink-0" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" /></svg>
                   1224 Muscle Blvd, Iron City, NY
@@ -350,7 +350,7 @@ export default function HomePage() {
 
             <div className="flex gap-4 pt-6 md:pt-0">
               {["Facebook", "Instagram", "Twitter"].map((network) => (
-                <a key={network} href="#" className="w-11 h-11 rounded-xl border border-zinc-800 flex items-center justify-center text-zinc-500 hover:text-white hover:border-zinc-700 transition-all" aria-label={network}>
+                <a key={network} href="#" className="w-11 h-11 rounded-xl border border-border flex items-center justify-center text-slate-muted hover:text-slate-primary hover:border-verdigris/40 transition-all" aria-label={network}>
                   {network === "Facebook" && <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z" /></svg>}
                   {network === "Instagram" && <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="2" width="20" height="20" rx="5" ry="5" /><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" /><line x1="17.5" y1="6.5" x2="17.51" y2="6.5" /></svg>}
                   {network === "Twitter" && <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 4l11.733 16h4.267l-11.733 -16zM4 20l6.768 -6.768M17.232 4.768l-6.768 6.768" /></svg>}
@@ -369,7 +369,7 @@ export default function HomePage() {
                 onChange={(e) => setContactName(e.target.value)}
                 placeholder="Your Name"
                 required
-                className="w-full rounded-xl bg-zinc-900/60 border border-zinc-800 px-4 py-3.5 text-sm text-white placeholder-zinc-600 focus:border-verdigris focus:outline-none transition-colors"
+                className="w-full rounded-xl bg-bg-deep/60 border border-border px-4 py-3.5 text-sm text-slate-primary placeholder-slate-subtle focus:border-verdigris focus:outline-none transition-colors"
               />
             </div>
             <div>
@@ -381,7 +381,7 @@ export default function HomePage() {
                 onChange={(e) => setContactEmail(e.target.value)}
                 placeholder="Your Email"
                 required
-                className="w-full rounded-xl bg-zinc-900/60 border border-zinc-800 px-4 py-3.5 text-sm text-white placeholder-zinc-600 focus:border-verdigris focus:outline-none transition-colors"
+                className="w-full rounded-xl bg-bg-deep/60 border border-border px-4 py-3.5 text-sm text-slate-primary placeholder-slate-subtle focus:border-verdigris focus:outline-none transition-colors"
               />
             </div>
             <div>
@@ -393,7 +393,7 @@ export default function HomePage() {
                 onChange={(e) => setContactMessage(e.target.value)}
                 placeholder="Your Message"
                 required
-                className="w-full rounded-xl bg-zinc-900/60 border border-zinc-800 px-4 py-3.5 text-sm text-white placeholder-zinc-600 focus:border-verdigris focus:outline-none transition-colors resize-none"
+                className="w-full rounded-xl bg-bg-deep/60 border border-border px-4 py-3.5 text-sm text-slate-primary placeholder-slate-subtle focus:border-verdigris focus:outline-none transition-colors resize-none"
               />
             </div>
             <button
@@ -409,29 +409,29 @@ export default function HomePage() {
       </main>
 
       {/* Footer */}
-      <footer className="bg-black border-t border-zinc-900 py-16 px-6 md:px-12 text-xs text-zinc-500">
+      <footer className="bg-bg-deep border-t border-border py-16 px-6 md:px-12 text-xs text-slate-muted">
         <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-10 mb-12">
           <div>
-            <h3 className="text-white font-black uppercase tracking-wider mb-4 text-sm">MERIDIAN</h3>
+            <h3 className="text-slate-primary font-black uppercase tracking-wider mb-4 text-sm">MERIDIAN</h3>
             <p className="leading-relaxed">The precision-built management system for elite fitness facilities.</p>
           </div>
           <div>
-            <h3 className="text-white font-black uppercase tracking-wider mb-4 text-sm">QUICK LINKS</h3>
+            <h3 className="text-slate-primary font-black uppercase tracking-wider mb-4 text-sm">QUICK LINKS</h3>
             <ul className="space-y-2">
-              <li><a href="#home" className="hover:text-white transition-colors">Home</a></li>
-              <li><a href="#services" className="hover:text-white transition-colors">Services</a></li>
-              <li><a href="#contact" className="hover:text-white transition-colors">Contact</a></li>
+              <li><a href="#home" className="hover:text-slate-primary transition-colors">Home</a></li>
+              <li><a href="#services" className="hover:text-slate-primary transition-colors">Services</a></li>
+              <li><a href="#contact" className="hover:text-slate-primary transition-colors">Contact</a></li>
             </ul>
           </div>
           <div>
-            <h3 className="text-white font-black uppercase tracking-wider mb-4 text-sm">RESOURCES</h3>
+            <h3 className="text-slate-primary font-black uppercase tracking-wider mb-4 text-sm">RESOURCES</h3>
             <ul className="space-y-2">
-              <li><a href="#contact" className="hover:text-white transition-colors">Privacy Policy</a></li>
-              <li><a href="#contact" className="hover:text-white transition-colors">Support Center</a></li>
+              <li><a href="#contact" className="hover:text-slate-primary transition-colors">Privacy Policy</a></li>
+              <li><a href="#contact" className="hover:text-slate-primary transition-colors">Support Center</a></li>
             </ul>
           </div>
         </div>
-        <div className="max-w-7xl mx-auto border-t border-zinc-900 pt-6 text-center">
+        <div className="max-w-7xl mx-auto border-t border-border pt-6 text-center">
           <p>&copy; 2026 MERIDIAN. ALL RIGHTS RESERVED.</p>
         </div>
       </footer>

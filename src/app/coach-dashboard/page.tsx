@@ -7,6 +7,7 @@ import { ToastContainer, showToast } from "@/components/Toast";
 import ConfirmModal from "@/components/ConfirmModal";
 import Spinner from "@/components/Spinner";
 import { SkeletonFullPage, SkeletonTableRows, SkeletonChatBubble } from "@/components/Skeleton";
+import ThemeToggle from "@/components/ThemeToggle";
 
 interface User {
   id: string;
@@ -51,10 +52,22 @@ export default function CoachPanelPage() {
   const [activeSection, setActiveSection] = useState<string>("classes");
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [currentUser] = useState<User | null>(() => {
+    if (typeof window === "undefined") return null;
+    const raw = localStorage.getItem("currentUser");
+    if (!raw) return null;
+    try {
+      return JSON.parse(raw) as User;
+    } catch {
+      return null;
+    }
+  });
   const [classes, setClasses] = useState<ClassItem[]>([]);
   const classesRef = useRef<ClassItem[]>([]);
-  classesRef.current = classes;
+
+  useEffect(() => {
+    classesRef.current = classes;
+  }, [classes]);
 
   // Loading states
   const [isClassesLoading, setIsClassesLoading] = useState(true);
@@ -88,26 +101,16 @@ export default function CoachPanelPage() {
 
   useEffect(() => {
     const isLoggedIn = localStorage.getItem("isLoggedIn") === "true";
-    const currentUserRaw = localStorage.getItem("currentUser");
-
-    if (!isLoggedIn || !currentUserRaw) {
+    if (!isLoggedIn) {
       router.replace("/login");
       return;
     }
 
-    try {
-      const user = JSON.parse(currentUserRaw) as User;
-      const role = (user.role || "").trim().toLowerCase();
-      if (role !== "coach") {
-        router.replace(role === "admin" ? "/admin-panel" : "/dashboard");
-        return;
-      }
-      setCurrentUser(user);
-    } catch {
-      localStorage.clear();
-      router.replace("/login");
+    const role = (currentUser?.role || "").trim().toLowerCase();
+    if (role !== "coach") {
+      router.replace(role === "admin" ? "/admin-panel" : "/dashboard");
     }
-  }, [router]);
+  }, [router, currentUser]);
 
   const loadClasses = useCallback(async () => {
     setIsClassesLoading(true);
@@ -119,6 +122,7 @@ export default function CoachPanelPage() {
         (c: ClassItem) => c.coachId === currentUser?.id
       );
       setClasses(myClasses);
+      setSelectedClassId((prev) => prev || (myClasses.length > 0 ? myClasses[0].id : ""));
     } catch (err) {
       console.error("Error loading classes", err);
     } finally {
@@ -158,16 +162,11 @@ export default function CoachPanelPage() {
 
   useEffect(() => {
     if (!currentUser) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     loadClasses();
     loadWorkouts();
     loadSentMessages();
   }, [currentUser, loadClasses, loadWorkouts, loadSentMessages]);
-
-  useEffect(() => {
-    if (classes.length > 0 && !selectedClassId) {
-      setSelectedClassId(classes[0].id);
-    }
-  }, [classes, selectedClassId]);
 
   const showSection = (section: string) => {
     setActiveSection(section);
@@ -366,7 +365,7 @@ export default function CoachPanelPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#070709] text-[#f4f4f5] flex font-sans overflow-x-hidden antialiased selection:bg-red-500 selection:text-white relative print-layout">
+    <div className="dash-root min-h-screen bg-[var(--dash-bg)] text-[var(--dash-text)] flex font-sans overflow-x-hidden antialiased selection:bg-red-500 selection:text-white relative print-layout">
 
       <div className="fixed top-[-10%] right-[-10%] w-[500px] h-[500px] bg-red-900/10 rounded-full blur-[160px] pointer-events-none z-0 no-print" />
 
@@ -375,10 +374,13 @@ export default function CoachPanelPage() {
       )}
 
       {/* Sidebar */}
-      <aside aria-label="Coach navigation" className={`w-64 border-r border-zinc-900/60 bg-[#0b0b0e]/95 lg:bg-[#0b0b0e]/80 backdrop-blur-xl p-6 flex flex-col justify-between fixed h-screen z-40 lg:z-30 transition-transform duration-300 ease-in-out no-print ${isMobileMenuOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}`}>
+      <aside aria-label="Coach navigation" className={`w-64 border-r border-[var(--dash-divider)] bg-[var(--dash-panel)]/95 lg:bg-[var(--dash-panel)]/80 backdrop-blur-xl p-6 flex flex-col justify-between fixed h-screen z-40 lg:z-30 transition-transform duration-300 ease-in-out no-print ${isMobileMenuOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}`}>
         <div>
           <div className="mb-10 pl-2 flex items-center justify-between">
-            <Link href="/"><img src="/img/logo.svg" alt="IronForged" className="h-9 hover:opacity-80 transition-opacity" /></Link>
+            <Link href="/">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/img/logo.svg" alt="IronForged" className="h-9 hover:opacity-80 transition-opacity" />
+            </Link>
             <button onClick={() => setIsMobileMenuOpen(false)} aria-label="Close menu" className="lg:hidden text-zinc-400 hover:text-white">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
             </button>
@@ -392,7 +394,7 @@ export default function CoachPanelPage() {
             ].map((tab) => (
               <button key={tab.id} onClick={() => showSection(tab.id)}
                 aria-current={activeSection === tab.id ? "page" : undefined}
-                className={`w-full flex items-center gap-3.5 px-4 py-3 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all relative ${activeSection === tab.id ? "bg-gradient-to-r from-zinc-900 to-zinc-900/50 text-red-500 border border-zinc-800/80 shadow-inner" : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/30"}`}>
+                className={`w-full flex items-center gap-3.5 px-4 py-3 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all relative ${activeSection === tab.id ? "bg-gradient-to-r from-zinc-900 to-zinc-900/50 text-red-500 border border-[var(--dash-border)] shadow-inner" : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/30"}`}>
                 {activeSection === tab.id && <span className="absolute left-0 w-[3px] h-5 bg-red-500 rounded-r-full shadow-[0_0_10px_rgba(239,68,68,0.7)]" aria-hidden="true" />}
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true">
                   {tab.icon === "classes" && <><rect x="3" y="4" width="18" height="18" rx="2" ry="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /></>}
@@ -405,7 +407,7 @@ export default function CoachPanelPage() {
             ))}
           </nav>
         </div>
-        <div className="space-y-2 border-t border-zinc-900/60 pt-4">
+        <div className="space-y-2 border-t border-[var(--dash-divider)] pt-4">
           <button onClick={handleLogout} aria-label="Log out" className="w-full flex items-center gap-3 text-zinc-500 hover:text-red-400 font-bold text-[11px] uppercase tracking-wider px-4 py-2 rounded-xl transition-colors text-left cursor-pointer">
             Log Out
           </button>
@@ -414,9 +416,9 @@ export default function CoachPanelPage() {
 
       {/* Main */}
       <main className="flex-1 w-full lg:pl-64 min-h-screen flex flex-col z-10 relative">
-        <header className="px-4 lg:px-8 pt-6 lg:pt-8 pb-4 flex items-center justify-between border-b border-zinc-900/30 lg:border-none no-print">
+        <header className="px-4 lg:px-8 pt-6 lg:pt-8 pb-4 flex items-center justify-between border-b border-[var(--dash-divider)] lg:border-none no-print">
           <div className="flex items-center gap-3">
-            <button onClick={() => setIsMobileMenuOpen(true)} aria-label="Open menu" className="lg:hidden p-2 bg-zinc-900 border border-zinc-800 rounded-xl text-zinc-300 hover:text-white transition-colors">
+            <button onClick={() => setIsMobileMenuOpen(true)} aria-label="Open menu" className="lg:hidden p-2 bg-zinc-900 border border-[var(--dash-border)] rounded-xl text-zinc-300 hover:text-white transition-colors">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true"><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="18" x2="21" y2="18" /></svg>
             </button>
             <div>
@@ -426,8 +428,11 @@ export default function CoachPanelPage() {
               <p className="text-[9px] lg:text-[10px] text-zinc-500 font-bold uppercase tracking-widest mt-0.5 hidden sm:block">MANAGE YOUR CLASSES & ATHLETES</p>
             </div>
           </div>
-          <div className="bg-emerald-500/10 border border-emerald-500/20 text-[8px] lg:text-[9px] font-black tracking-widest text-emerald-400 uppercase px-2.5 py-1.5 rounded-xl">
-            COACH MODE
+          <div className="flex items-center gap-3">
+            <ThemeToggle />
+            <div className="bg-emerald-500/10 border border-emerald-500/20 text-[8px] lg:text-[9px] font-black tracking-widest text-emerald-400 uppercase px-2.5 py-1.5 rounded-xl">
+              COACH MODE
+            </div>
           </div>
         </header>
 
@@ -436,21 +441,21 @@ export default function CoachPanelPage() {
           {/* MY CLASSES */}
           {activeSection === "classes" && (
             <div onMouseMove={(e) => { const c = e.currentTarget; const r = c.getBoundingClientRect(); c.style.setProperty("--mx", `${((e.clientX - r.left) / r.width) * 100}%`); c.style.setProperty("--my", `${((e.clientY - r.top) / r.height) * 100}%`); }} className="premium-glow-card rounded-2xl p-4 lg:p-6 space-y-4 animate-fadeIn">
-              <div className="flex justify-between items-center border-b border-zinc-900/60 pb-3">
+              <div className="flex justify-between items-center border-b border-[var(--dash-divider)] pb-3">
                 <h2 className="text-xs font-black text-white uppercase tracking-widest">MY CLASSES</h2>
                 <span className="text-[10px] bg-zinc-900/80 px-3 py-1 rounded-full font-bold text-zinc-400">{classes.length} CLASSES</span>
               </div>
               <div className="w-full overflow-x-auto block">
                 <table className="w-full text-left text-xs min-w-[650px]" aria-label="My classes">
                   <thead>
-                    <tr className="text-[9px] uppercase font-black text-zinc-500 tracking-widest border-b border-zinc-900 pb-3">
+                    <tr className="text-[9px] uppercase font-black text-zinc-500 tracking-widest border-b border-[var(--dash-divider)] pb-3">
                       <th scope="col" className="pb-2">Title</th>
                       <th scope="col" className="pb-2">Schedule</th>
                       <th scope="col" className="pb-2">Enrolled</th>
                       <th scope="col" className="pb-2 text-right">Actions</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-zinc-900/40 text-zinc-300">
+                  <tbody className="divide-y divide-[var(--dash-divider)] text-zinc-300">
                     {isClassesLoading ? (
                       <SkeletonTableRows rows={4} cols={4} />
                     ) : classes.map((c) => (
@@ -462,7 +467,7 @@ export default function CoachPanelPage() {
                           <span className="text-zinc-600"> / {c.capacity || 20}</span>
                         </td>
                         <td className="py-3 text-right">
-                          <button onClick={() => { setSelectedClassId(c.id); setActiveSection("attendance"); }} className="bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 px-2.5 py-1 rounded-lg font-bold text-[10px] text-zinc-300 transition-colors">
+                          <button onClick={() => { setSelectedClassId(c.id); setActiveSection("attendance"); }} className="bg-zinc-900 hover:bg-zinc-800 border border-[var(--dash-border)] px-2.5 py-1 rounded-lg font-bold text-[10px] text-zinc-300 transition-colors">
                             Take Attendance
                           </button>
                         </td>
@@ -480,15 +485,15 @@ export default function CoachPanelPage() {
           {/* ATTENDANCE */}
           {activeSection === "attendance" && (
             <div onMouseMove={(e) => { const c = e.currentTarget; const r = c.getBoundingClientRect(); c.style.setProperty("--mx", `${((e.clientX - r.left) / r.width) * 100}%`); c.style.setProperty("--my", `${((e.clientY - r.top) / r.height) * 100}%`); }} className="premium-glow-card rounded-2xl p-4 lg:p-6 space-y-4 animate-fadeIn">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-zinc-900/60 pb-3">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[var(--dash-divider)] pb-3">
                 <h2 className="text-xs font-black text-white uppercase tracking-widest">MARK ATTENDANCE</h2>
                 <div className="flex items-center gap-2">
-                  <select value={selectedClassId} onChange={(e) => { setSelectedClassId(e.target.value); setAttendanceRecords([]); }} className="select-dark bg-[#121216] border border-zinc-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-transparent">
+                  <select value={selectedClassId} onChange={(e) => { setSelectedClassId(e.target.value); setAttendanceRecords([]); }} className="select-dark bg-[var(--dash-field)] border border-[var(--dash-border)] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-transparent">
                     <option value="">Select Class</option>
                     {classes.map((c) => <option key={c.id} value={c.id}>{c.title}</option>)}
                   </select>
-                  <input type="date" value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} className="bg-[#121216] border border-zinc-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-red-500" />
-                  <button onClick={() => { if (selectedClassId) loadAttendanceAndMerge(selectedClassId, selectedDate); }} className="bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 px-3 py-2 rounded-xl text-[10px] font-bold text-zinc-300 transition-colors whitespace-nowrap">
+                  <input type="date" value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} className="bg-[var(--dash-field)] border border-[var(--dash-border)] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-red-500" />
+                  <button onClick={() => { if (selectedClassId) loadAttendanceAndMerge(selectedClassId, selectedDate); }} className="bg-zinc-900 hover:bg-zinc-800 border border-[var(--dash-border)] px-3 py-2 rounded-xl text-[10px] font-bold text-zinc-300 transition-colors whitespace-nowrap">
                     Load
                   </button>
                 </div>
@@ -505,12 +510,12 @@ export default function CoachPanelPage() {
                   <div className="w-full overflow-x-auto block">
                     <table className="w-full text-left text-xs min-w-[500px]" aria-label="Attendance roster">
                       <thead>
-                        <tr className="text-[9px] uppercase font-black text-zinc-500 tracking-widest border-b border-zinc-900 pb-3">
+                        <tr className="text-[9px] uppercase font-black text-zinc-500 tracking-widest border-b border-[var(--dash-divider)] pb-3">
                           <th scope="col" className="pb-2">Student</th>
                           <th scope="col" className="pb-2">Status</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-zinc-900/40 text-zinc-300">
+                      <tbody className="divide-y divide-[var(--dash-divider)] text-zinc-300">
                         {selectedClass.students.map((student) => {
                           const record = attendanceRecords.find((r) => r.studentId === student.id);
                           return (
@@ -525,7 +530,7 @@ export default function CoachPanelPage() {
                                     <button key={status} aria-pressed={record?.status === status} onClick={() => {
                                       setAttendanceRecords((prev) => prev.map((r) => r.studentId === student.id ? { ...r, status } : r));
                                     }}
-                                      className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider border transition-colors ${record?.status === status ? (status === "Present" ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/30" : status === "Late" ? "bg-amber-500/20 text-amber-400 border-amber-500/30" : "bg-red-500/20 text-red-400 border-red-500/30") : "bg-zinc-900/50 text-zinc-500 border-zinc-800 hover:text-zinc-300"}`}>
+                                      className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider border transition-colors ${record?.status === status ? (status === "Present" ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/30" : status === "Late" ? "bg-amber-500/20 text-amber-400 border-amber-500/30" : "bg-red-500/20 text-red-400 border-red-500/30") : "bg-zinc-900/50 text-zinc-500 border-[var(--dash-border)] hover:text-zinc-300"}`}>
                                       {status}
                                     </button>
                                   ))}
@@ -556,19 +561,19 @@ export default function CoachPanelPage() {
           {activeSection === "workouts" && (
             <div className="space-y-6 animate-fadeIn">
               <div onMouseMove={(e) => { const c = e.currentTarget; const r = c.getBoundingClientRect(); c.style.setProperty("--mx", `${((e.clientX - r.left) / r.width) * 100}%`); c.style.setProperty("--my", `${((e.clientY - r.top) / r.height) * 100}%`); }} className="premium-glow-card rounded-2xl p-4 lg:p-6 space-y-4">
-                <h2 className="text-xs font-black text-white uppercase tracking-widest border-b border-zinc-900/60 pb-3">ASSIGN WORKOUT</h2>
+                <h2 className="text-xs font-black text-white uppercase tracking-widest border-b border-[var(--dash-divider)] pb-3">ASSIGN WORKOUT</h2>
 
                 <div className="flex gap-3">
-                  <button onClick={() => setWorkoutType("group")} className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider border transition-colors ${workoutType === "group" ? "bg-red-500/20 text-red-400 border-red-500/30" : "bg-zinc-900/50 text-zinc-500 border-zinc-800 hover:text-zinc-300"}`}>
+                  <button onClick={() => setWorkoutType("group")} className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider border transition-colors ${workoutType === "group" ? "bg-red-500/20 text-red-400 border-red-500/30" : "bg-zinc-900/50 text-zinc-500 border-[var(--dash-border)] hover:text-zinc-300"}`}>
                     Group (Class)
                   </button>
-                  <button onClick={() => setWorkoutType("individual")} className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider border transition-colors ${workoutType === "individual" ? "bg-red-500/20 text-red-400 border-red-500/30" : "bg-zinc-900/50 text-zinc-500 border-zinc-800 hover:text-zinc-300"}`}>
+                  <button onClick={() => setWorkoutType("individual")} className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider border transition-colors ${workoutType === "individual" ? "bg-red-500/20 text-red-400 border-red-500/30" : "bg-zinc-900/50 text-zinc-500 border-[var(--dash-border)] hover:text-zinc-300"}`}>
                     Individual (Student)
                   </button>
                 </div>
 
                 {workoutType === "group" ? (
-                  <select value={workoutClassId} onChange={(e) => setWorkoutClassId(e.target.value)} className="select-dark w-full bg-[#121216] border border-zinc-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-transparent">
+                  <select value={workoutClassId} onChange={(e) => setWorkoutClassId(e.target.value)} className="select-dark w-full bg-[var(--dash-field)] border border-[var(--dash-border)] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-transparent">
                     <option value="">Select a Class</option>
                     {classes.map((c) => <option key={c.id} value={c.id}>{c.title} ({c.time})</option>)}
                   </select>
@@ -577,7 +582,7 @@ export default function CoachPanelPage() {
                     <div className="space-y-1">
                       <label className="text-[9px] font-black text-zinc-500 uppercase tracking-widest">Select Class</label>
                       <select value={workoutClassId} onChange={(e) => { setWorkoutClassId(e.target.value); setWorkoutStudentId(""); }}
-                        className="select-dark w-full bg-[#121216] border border-zinc-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-transparent">
+                        className="select-dark w-full bg-[var(--dash-field)] border border-[var(--dash-border)] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-transparent">
                         <option value="">Choose a class...</option>
                         {classes.map((c) => <option key={c.id} value={c.id}>{c.title}</option>)}
                       </select>
@@ -586,7 +591,7 @@ export default function CoachPanelPage() {
                       <label className="text-[9px] font-black text-zinc-500 uppercase tracking-widest">Select Student</label>
                       <select value={workoutStudentId} onChange={(e) => setWorkoutStudentId(e.target.value)}
                         disabled={!workoutClassId}
-                        className="select-dark w-full bg-[#121216] border border-zinc-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-transparent disabled:opacity-40 disabled:cursor-not-allowed">
+                        className="select-dark w-full bg-[var(--dash-field)] border border-[var(--dash-border)] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-transparent disabled:opacity-40 disabled:cursor-not-allowed">
                         <option value="">{workoutClassId ? "Choose a student..." : "Select a class first"}</option>
                         {selectedWorkoutClass?.students.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
                       </select>
@@ -594,7 +599,7 @@ export default function CoachPanelPage() {
                   </div>
                 )}
 
-                <textarea value={workoutText} onChange={(e) => setWorkoutText(e.target.value)} rows={5} placeholder={"Enter workout exercises, one per line:\nBench Press 4x8\nSquat 3x10\nDeadlift 5x5"} className="w-full bg-[#121216] border border-zinc-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-red-500 resize-none font-mono" />
+                <textarea value={workoutText} onChange={(e) => setWorkoutText(e.target.value)} rows={5} placeholder={"Enter workout exercises, one per line:\nBench Press 4x8\nSquat 3x10\nDeadlift 5x5"} className="w-full bg-[var(--dash-field)] border border-[var(--dash-border)] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-red-500 resize-none font-mono" />
 
                 <div className="flex justify-end">
                   <button onClick={saveWorkout} disabled={isSavingWorkout} className="px-5 py-2 bg-red-500 hover:bg-red-600 rounded-xl text-xs font-black uppercase text-white tracking-wider transition-colors disabled:opacity-50 flex items-center gap-2">
@@ -606,7 +611,7 @@ export default function CoachPanelPage() {
 
               {/* Recent Group Workouts */}
               <div onMouseMove={(e) => { const c = e.currentTarget; const r = c.getBoundingClientRect(); c.style.setProperty("--mx", `${((e.clientX - r.left) / r.width) * 100}%`); c.style.setProperty("--my", `${((e.clientY - r.top) / r.height) * 100}%`); }} className="premium-glow-card rounded-2xl p-4 lg:p-6 space-y-3">
-                <div className="flex justify-between items-center border-b border-zinc-900/60 pb-3">
+                <div className="flex justify-between items-center border-b border-[var(--dash-divider)] pb-3">
                   <h3 className="text-xs font-black text-white uppercase tracking-widest">RECENT GROUP WORKOUTS</h3>
                   {groupWorkouts.length > 0 && (
                     <button onClick={() => window.print()} className="text-[9px] font-black text-red-400 bg-red-500/10 border border-red-500/20 px-3 py-1 rounded-lg hover:bg-red-500/20 transition-colors">Download PDF</button>
@@ -615,12 +620,12 @@ export default function CoachPanelPage() {
                 <div id="workout-printable">
                 {isWorkoutsLoading ? (
                   <div className="space-y-2">
-                    {Array.from({ length: 3 }).map((_, i) => <div key={i} className="flex items-center justify-between bg-[#121216] p-3 rounded-xl border border-zinc-900/60"><div className="h-3.5 w-24 bg-zinc-800/60 animate-pulse rounded" /><div className="h-5 w-14 bg-zinc-800/60 animate-pulse rounded" /></div>)}
+                    {Array.from({ length: 3 }).map((_, i) => <div key={i} className="flex items-center justify-between bg-[var(--dash-field)] p-3 rounded-xl border border-[var(--dash-divider)]"><div className="h-3.5 w-24 bg-zinc-800/60 animate-pulse rounded" /><div className="h-5 w-14 bg-zinc-800/60 animate-pulse rounded" /></div>)}
                   </div>
                 ) : groupWorkouts.length > 0 ? (
                   <div className="space-y-2">
                     {groupWorkouts.slice(0, 5).map((w) => (
-                      <div key={w.id} className="flex items-center justify-between bg-[#121216] p-3 rounded-xl border border-zinc-900/60">
+                      <div key={w.id} className="flex items-center justify-between bg-[var(--dash-field)] p-3 rounded-xl border border-[var(--dash-divider)]">
                         <div>
                           <div className="text-xs font-bold text-white">{w.gymClass?.className || "Unknown Class"}</div>
                           <div className="text-[10px] text-zinc-500">{new Date(w.date).toLocaleDateString("en-GB")}</div>
@@ -642,13 +647,13 @@ export default function CoachPanelPage() {
             <div className="space-y-6 animate-fadeIn">
               {/* Compose Message */}
               <div onMouseMove={(e) => { const c = e.currentTarget; const r = c.getBoundingClientRect(); c.style.setProperty("--mx", `${((e.clientX - r.left) / r.width) * 100}%`); c.style.setProperty("--my", `${((e.clientY - r.top) / r.height) * 100}%`); }} className="premium-glow-card rounded-2xl p-4 lg:p-6 space-y-4">
-                <h2 className="text-xs font-black text-white uppercase tracking-widest border-b border-zinc-900/60 pb-3">SEND PRIVATE MESSAGE</h2>
+                <h2 className="text-xs font-black text-white uppercase tracking-widest border-b border-[var(--dash-divider)] pb-3">SEND PRIVATE MESSAGE</h2>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div className="space-y-1">
                     <label className="text-[9px] font-black text-zinc-500 uppercase tracking-widest">Select Class</label>
                     <select value={messageClassId} onChange={(e) => { setMessageClassId(e.target.value); setMessageStudentId(""); }}
-                      className="select-dark w-full bg-[#121216] border border-zinc-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-transparent">
+                      className="select-dark w-full bg-[var(--dash-field)] border border-[var(--dash-border)] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-transparent">
                       <option value="">Choose a class...</option>
                       {classes.map((c) => <option key={c.id} value={c.id}>{c.title}</option>)}
                     </select>
@@ -658,7 +663,7 @@ export default function CoachPanelPage() {
                     <label className="text-[9px] font-black text-zinc-500 uppercase tracking-widest">Select Student</label>
                     <select value={messageStudentId} onChange={(e) => setMessageStudentId(e.target.value)}
                       disabled={!messageClassId}
-                      className="select-dark w-full bg-[#121216] border border-zinc-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-transparent disabled:opacity-40 disabled:cursor-not-allowed">
+                      className="select-dark w-full bg-[var(--dash-field)] border border-[var(--dash-border)] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-transparent disabled:opacity-40 disabled:cursor-not-allowed">
                       <option value="">{messageClassId ? "Choose a student..." : "Select a class first"}</option>
                       {selectedMsgClass?.students.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
                     </select>
@@ -667,7 +672,7 @@ export default function CoachPanelPage() {
 
                 <textarea value={messageText} onChange={(e) => setMessageText(e.target.value)} rows={4}
                   placeholder="Type your message to the student..."
-                  className="w-full bg-[#121216] border border-zinc-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-red-500 resize-none" />
+                  className="w-full bg-[var(--dash-field)] border border-[var(--dash-border)] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-red-500 resize-none" />
 
                 <div className="flex justify-between items-center">
                   {messageStudentId && selectedMsgClass && (
@@ -688,13 +693,13 @@ export default function CoachPanelPage() {
 
               {/* Sent Messages */}
               <div onMouseMove={(e) => { const c = e.currentTarget; const r = c.getBoundingClientRect(); c.style.setProperty("--mx", `${((e.clientX - r.left) / r.width) * 100}%`); c.style.setProperty("--my", `${((e.clientY - r.top) / r.height) * 100}%`); }} className="premium-glow-card rounded-2xl p-4 lg:p-6 space-y-3">
-                <h3 className="text-xs font-black text-white uppercase tracking-widest border-b border-zinc-900/60 pb-3">SENT MESSAGES</h3>
+                <h3 className="text-xs font-black text-white uppercase tracking-widest border-b border-[var(--dash-divider)] pb-3">SENT MESSAGES</h3>
                 {isMessagesLoading ? (
                   <SkeletonChatBubble count={4} />
                 ) : (
                   <div className="space-y-2">
                     {sentMessages.length > 0 ? sentMessages.slice(0, 20).map((m) => (
-                      <div key={m.id} className="flex items-center justify-between bg-[#121216] p-3 rounded-xl border border-zinc-900/60 hover:bg-zinc-900/20 transition-colors">
+                      <div key={m.id} className="flex items-center justify-between bg-[var(--dash-field)] p-3 rounded-xl border border-[var(--dash-divider)] hover:bg-zinc-900/20 transition-colors">
                         <div className="flex items-center gap-3 min-w-0 flex-1">
                           <span className="text-[8px] font-black uppercase tracking-wider border px-2 py-0.5 rounded-md bg-red-500/10 border-red-500/20 text-red-400 shrink-0">
                             PRIVATE

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 
 interface EditRoleModalProps {
   open: boolean;
@@ -20,10 +20,6 @@ export default function EditRoleModal({
   onCancel,
 }: EditRoleModalProps) {
   const [selected, setSelected] = useState(currentRole);
-
-  useEffect(() => {
-    setSelected(currentRole);
-  }, [currentRole, open]);
 
   useEffect(() => {
     if (!open) return;

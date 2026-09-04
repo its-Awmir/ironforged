@@ -77,6 +77,20 @@ export async function clearSessionCookie() {
   cookieStore.delete(SESSION_COOKIE);
 }
 
+/**
+ * Extracts the real user id from a session token string ("userId.role.signature").
+ * Returns the userId only when the HMAC signature is valid; otherwise returns null.
+ */
+export async function resolveUserIdFromToken(
+  token: string | null | undefined
+): Promise<string | null> {
+  if (!token || typeof token !== "string" || token.trim().length === 0) {
+    return null;
+  }
+  const parsed = await parseSessionToken(token.trim());
+  return parsed ? parsed.userId : null;
+}
+
 export async function getSessionUser(): Promise<SessionUser | null> {
   try {
     const cookieStore = await cookies();

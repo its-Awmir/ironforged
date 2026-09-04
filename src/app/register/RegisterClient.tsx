@@ -4,6 +4,7 @@ import { useState, FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { showToast } from "@/components/Toast";
+import { Eye, EyeOff } from "lucide-react";
 
 export default function RegisterClient() {
   const router = useRouter();
@@ -13,6 +14,8 @@ export default function RegisterClient() {
   const [password, setPassword] = useState<string>("");
   const [confirmPassword, setConfirmPassword] = useState<string>("");
   const [goal, setGoal] = useState<string>("Muscle Building");
+  const [showPassword, setShowPassword] = useState<boolean>(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState<boolean>(false);
 
   const [errors, setErrors] = useState({
     name: false,
@@ -107,6 +110,7 @@ export default function RegisterClient() {
 
         <div className="flex flex-col items-center text-center mb-8">
           <div className="mb-4">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/img/logo.svg" alt="MERIDIAN" className="h-[52px]" />
           </div>
           <h1 className="text-3xl font-black tracking-wider text-slate-primary uppercase font-slab">
@@ -150,31 +154,53 @@ export default function RegisterClient() {
 
             <div className="flex flex-col gap-1.5">
               <label htmlFor="reg-password" className="text-xs font-semibold uppercase tracking-wider text-slate-muted">Password</label>
-              <input
-                id="reg-password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Min 8 chars"
-                required
-                aria-invalid={errors.passwordLength || undefined}
-                className="w-full rounded-xl bg-bg-deep/60 border border-border px-4 py-3 text-sm text-slate-primary placeholder-slate-subtle focus:border-verdigris focus:outline-none transition-colors"
-              />
+              <div className="relative">
+                <input
+                  id="reg-password"
+                  type={showPassword ? "text" : "password"}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Min 8 chars"
+                  required
+                  aria-invalid={errors.passwordLength || undefined}
+                  className="w-full rounded-xl bg-bg-deep/60 border border-border px-4 py-3 pr-12 text-sm text-slate-primary placeholder-slate-subtle focus:border-verdigris focus:outline-none transition-colors"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((v) => !v)}
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                  aria-pressed={showPassword}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-muted hover:text-slate-primary transition-colors"
+                >
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
               {errors.passwordLength && <div id="reg-password-error" className="text-xs text-brass-light font-medium" role="alert">Password must be at least 8 characters.</div>}
             </div>
 
             <div className="flex flex-col gap-1.5">
               <label htmlFor="reg-confirm" className="text-xs font-semibold uppercase tracking-wider text-slate-muted">Confirm Password</label>
-              <input
-                id="reg-confirm"
-                type="password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                placeholder="Repeat password"
-                required
-                aria-invalid={errors.passwordMatch || undefined}
-                className="w-full rounded-xl bg-bg-deep/60 border border-border px-4 py-3 text-sm text-slate-primary placeholder-slate-subtle focus:border-verdigris focus:outline-none transition-colors"
-              />
+              <div className="relative">
+                <input
+                  id="reg-confirm"
+                  type={showConfirmPassword ? "text" : "password"}
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder="Repeat password"
+                  required
+                  aria-invalid={errors.passwordMatch || undefined}
+                  className="w-full rounded-xl bg-bg-deep/60 border border-border px-4 py-3 pr-12 text-sm text-slate-primary placeholder-slate-subtle focus:border-verdigris focus:outline-none transition-colors"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword((v) => !v)}
+                  aria-label={showConfirmPassword ? "Hide password" : "Show password"}
+                  aria-pressed={showConfirmPassword}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-muted hover:text-slate-primary transition-colors"
+                >
+                  {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
               {errors.passwordMatch && <div id="reg-confirm-error" className="text-xs text-brass-light font-medium" role="alert">Passwords do not match.</div>}
             </div>
 

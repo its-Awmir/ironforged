@@ -4,6 +4,7 @@ import { useState, FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { showToast } from "@/components/Toast";
+import { Eye, EyeOff } from "lucide-react";
 
 interface LoginResponse {
   id: string;
@@ -17,6 +18,7 @@ export default function LoginClient() {
 
   const [email, setEmail] = useState<string>("");
   const [password, setPassword] = useState<string>("");
+  const [showPassword, setShowPassword] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(false);
   const [loginStatus, setLoginStatus] = useState<{
     success: boolean;
@@ -102,6 +104,7 @@ export default function LoginClient() {
 
         <div className="flex flex-col items-center text-center mb-8">
           <div className="mb-4">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/img/logo.svg" alt="MERIDIAN" className="h-[52px]" />
           </div>
           <h1 className="text-3xl font-black tracking-wider text-slate-primary uppercase font-slab">
@@ -138,15 +141,26 @@ export default function LoginClient() {
               </div>
               <div className="flex flex-col gap-2">
                 <label htmlFor="password" className="text-xs font-semibold uppercase tracking-wider text-slate-muted">Password</label>
-                <input
-                  type="password"
-                  id="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Enter your password"
-                  required
-                  className="w-full rounded-xl bg-bg-deep/60 border border-border px-4 py-3.5 text-sm text-slate-primary placeholder-slate-subtle focus:border-verdigris focus:outline-none transition-colors"
-                />
+                <div className="relative">
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    id="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="Enter your password"
+                    required
+                    className="w-full rounded-xl bg-bg-deep/60 border border-border px-4 py-3.5 pr-12 text-sm text-slate-primary placeholder-slate-subtle focus:border-verdigris focus:outline-none transition-colors"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((v) => !v)}
+                    aria-label={showPassword ? "Hide password" : "Show password"}
+                    aria-pressed={showPassword}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-muted hover:text-slate-primary transition-colors"
+                  >
+                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
               </div>
             </div>
 

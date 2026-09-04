@@ -4,9 +4,12 @@
    MERIDIAN — Design System
    Industrial precision. Foggy slate. Vintage architectural
    brutalism. Verdigris + antique brass accents.
+   Dark mode is the default; the `.light` class on <html>
+   switches the app to a high-contrast slate/zinc light theme.
    ══════════════════════════════════════════════════════════ */
 
-:root {
+:root,
+.dark {
   /* — Backgrounds (slate/industrial) — */
   --bg: #0f1216;
   --bg-deep: #14181d;
@@ -15,7 +18,7 @@
 
   /* — Accent 1: Verdigris Green (primary) — */
   --verdigris: #437a6b;
-  --verdigris-light: #529885;
+  --verdigris-light: #6db59f;
   --verdigris-dark: #335f53;
 
   /* — Accent 2: Antique Brass (secondary/highlight) — */
@@ -31,10 +34,49 @@
   /* — Borders — */
   --border: #2d3748;
 
-  /* — Fonts — */
-  --font-slab: var(--font-roboto-slab);
-  --font-mono: var(--font-ibm-plex-mono);
-  --font-body: var(--font-body-sans);
+  /* — Dashboard surfaces (member/coach/admin consoles) — */
+  --dash-bg: #070709;
+  --dash-panel: #0b0b0e;
+  --dash-field: #121216;
+  --dash-border: #27272a;
+  --dash-divider: #18181b;
+  --dash-text: #f4f4f5;
+  --dash-muted: #71717a;
+  --dash-soft: #a1a1aa;
+}
+
+/* ── Light Mode ─────────────────────────────────────────
+   High-contrast slate/zinc backgrounds with dark, crisp
+   text. MERIDIAN brand accents (verdigris + brass) are
+   deepened slightly so they stay AA-visible on light bg. */
+.light {
+  --bg: #eef0f3;
+  --bg-deep: #f8fafc;
+  --bg-panel: #ffffff;
+  --bg-surface: #dde1e7;
+
+  --verdigris: #2f5c50;
+  --verdigris-light: #3f7a6a;
+  --verdigris-dark: #264a40;
+
+  --brass: #9a7233;
+  --brass-light: #b08844;
+  --brass-dark: #7d5c28;
+
+  --slate-primary: #1f2937;
+  --slate-muted: #475569;
+  --slate-subtle: #64748b;
+
+  --border: #cbd5e1;
+
+  --dash-bg: #e4e7eb;
+  --dash-panel: #ffffff;
+  --dash-field: #f4f5f7;
+  --dash-border: #d4d4d8;
+  --dash-divider: #e4e4e7;
+  --dash-text: #18181b;
+  --dash-muted: #52525b;
+  --dash-soft: #71717a;
 }
 
 @theme inline {
@@ -57,7 +99,7 @@
 
   --color-border: var(--border);
 
-  --font-sans: var(--font-slab);
+  --font-sans: var(--font-plus-jakarta-sans);
   --font-slab: var(--font-roboto-slab);
   --font-mono: var(--font-ibm-plex-mono);
   --font-body: var(--font-body-sans);
@@ -67,10 +109,14 @@ html {
   color-scheme: dark;
 }
 
+html.light {
+  color-scheme: light;
+}
+
 body {
   background: var(--bg);
   color: var(--slate-primary);
-  font-family: var(--font-body, Arial, Helvetica, sans-serif);
+  font-family: var(--font-sans, var(--font-body, Arial, Helvetica, sans-serif));
   -webkit-font-smoothing: antialiased;
 }
 
@@ -119,6 +165,91 @@ h1, h2, h3, h4, h5, h6 {
 .meridian-card:hover {
   border-color: rgba(82, 152, 133, 0.35);
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+}
+
+.light .meridian-card {
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.95) 0%,
+    rgba(248, 250, 252, 0.98) 100%
+  );
+  border: 1px solid rgba(203, 213, 225, 0.9);
+  box-shadow: 0 4px 24px rgba(15, 23, 42, 0.08);
+}
+.light .meridian-card:hover {
+  border-color: rgba(47, 92, 80, 0.4);
+  box-shadow: 0 8px 32px rgba(15, 23, 42, 0.12);
+}
+
+/* ── Dashboard Console Card ────────────────────────── */
+.premium-glow-card {
+  backdrop-filter: blur(16px);
+  background: linear-gradient(135deg, var(--dash-panel) 0%, var(--dash-field) 100%);
+  border: 1px solid var(--dash-border);
+  transition: all 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+  position: relative;
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.4);
+}
+.light .premium-glow-card {
+  box-shadow: 0 4px 24px rgba(15, 23, 42, 0.08);
+}
+.premium-glow-card:hover {
+  border-color: rgba(239, 68, 68, 0.2);
+  transform: translateY(-2px);
+  box-shadow: 0 10px 40px rgba(239, 68, 68, 0.08);
+}
+.premium-glow-card:before {
+  content: "";
+  border-radius: inherit;
+  background: radial-gradient(400px circle at var(--mx, 50%) var(--my, 50%), rgba(239, 68, 68, 0.12), transparent 50%);
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s;
+  position: absolute;
+  inset: 0;
+}
+.premium-glow-card:hover:before {
+  opacity: 1;
+}
+.premium-glow-card > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* ── Console text readability in Light Mode ──────────
+   The console pages rely on zinc-* text utilities that are
+   tuned for dark backgrounds. Scope overrides so they stay
+   high-contrast on slate/zinc light backgrounds. */
+.light .dash-root .text-white { color: var(--dash-text) !important; }
+.light .dash-root .text-zinc-950,
+.light .dash-root .text-zinc-900,
+.light .dash-root .text-zinc-800,
+.light .dash-root .text-zinc-700 { color: #18181b !important; }
+.light .dash-root .text-zinc-200,
+.light .dash-root .text-zinc-300 { color: #27272a !important; }
+.light .dash-root .text-zinc-400 { color: var(--dash-soft) !important; }
+.light .dash-root .text-zinc-500 { color: var(--dash-muted) !important; }
+.light .dash-root .text-zinc-600 { color: #52525b !important; }
+
+.light .dash-root .text-red-400 { color: #dc2626 !important; }
+.light .dash-root .text-emerald-400 { color: #059669 !important; }
+.light .dash-root .text-amber-400 { color: #d97706 !important; }
+.light .dash-root .text-orange-400 { color: #ea580c !important; }
+.light .dash-root .text-blue-400 { color: #2563eb !important; }
+.light .dash-root .text-purple-400 { color: #7c3aed !important; }
+.light .dash-root .text-cyan-400 { color: #0891b2 !important; }
+
+.light .dash-root input,
+.light .dash-root select {
+  color: var(--dash-text);
+}
+.light .dash-root ::placeholder {
+  color: rgba(82, 82, 91, 0.6);
+}
+.light .dash-root .select-dark option {
+  background: #ffffff;
+  color: #18181b;
 }
 
 /* ── Animations ─────────────────────────────────────── */
@@ -178,16 +309,19 @@ h1, h2, h3, h4, h5, h6 {
 
   .no-print { display: none !important; }
 
-  .meridian-card {
+  .meridian-card,
+  .premium-glow-card {
     background: #fff !important;
     border: 1px solid #e5e7eb !important;
     box-shadow: none !important;
     transform: none !important;
+    backdrop-filter: none !important;
   }
 
   .text-slate-primary { color: #111 !important; }
   .text-slate-muted { color: #333 !important; }
   .text-slate-subtle { color: #666 !important; }
+  .text-white { color: #111 !important; }
 
   table { width: 100% !important; border-collapse: collapse !important; }
   thead tr { border-bottom: 2px solid #e5e7eb !important; }
