@@ -8,17 +8,10 @@ import ConfirmModal from "@/components/ConfirmModal";
 import Spinner from "@/components/Spinner";
 import { SkeletonFullPage, SkeletonCard, SkeletonTableRows, SkeletonChatBubble } from "@/components/Skeleton";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
-import { X, Check, Download } from "lucide-react";
+import { X, Check, Download, Lock } from "lucide-react";
 import { useCyberpunkPDF } from "@/hooks/useCyberpunkPDF";
+import { useLocalUser, setLocalUser } from "@/hooks/useLocalUser";
 import ThemeToggle from "@/components/ThemeToggle";
-
-interface UserData {
-  id: string;
-  name: string;
-  email: string;
-  role: string;
-  goal?: string;
-}
 
 interface ClassItem {
   id: string;
@@ -124,8 +117,7 @@ function RadialProgress({ value, max, color, label, unit }: { value: number; max
 
 export default function DashboardPage() {
   const router = useRouter();
-  const [isMounted, setIsMounted] = useState(false);
-  const [user, setUser] = useState<UserData | null>(null);
+  const { user, isLoggedIn, isHydrated } = useLocalUser();
   const [activeTab, setActiveTab] = useState("overview");
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
@@ -153,6 +145,7 @@ export default function DashboardPage() {
   const [macros, setMacros] = useState<MacrosData>({ calories: 0, protein: 0, carbs: 0, fat: 0 });
   const [streak, setStreak] = useState<StreakData>({ currentStreak: 0, longestStreak: 0 });
   const [subscription, setSubscription] = useState<SubscriptionData>({ status: "EXPIRED" });
+  const [subDaysLeft, setSubDaysLeft] = useState(0);
   const [isWeightLoading, setIsWeightLoading] = useState(true);
   const [isMacrosLoading, setIsMacrosLoading] = useState(true);
   const [isStreakLoading, setIsStreakLoading] = useState(true);
@@ -164,7 +157,7 @@ export default function DashboardPage() {
 
   const [showWeightModal, setShowWeightModal] = useState(false);
   const [weightInput, setWeightInput] = useState("");
-  const [weightDate, setWeightDate] = useState("");
+  const [weightDate, setWeightDate] = useState(() => new Date().toISOString().split("T")[0]);
   const [isSavingWeight, setIsSavingWeight] = useState(false);
 
   const [showPaymentModal, setShowPaymentModal] = useState(false);
@@ -182,17 +175,7 @@ export default function DashboardPage() {
   const didInitialFetchRef = useRef(false);
 
   useEffect(() => {
-    setIsMounted(true);
-    const raw = localStorage.getItem("currentUser");
-    if (raw) {
-      try { setUser(JSON.parse(raw) as UserData); } catch { setUser(null); }
-    }
-    setWeightDate(new Date().toISOString().split("T")[0]);
-  }, []);
-
-  useEffect(() => {
-    if (!isMounted) return;
-    const isLoggedIn = localStorage.getItem("isLoggedIn") === "true";
+    if (!isHydrated) return;
     if (!isLoggedIn) {
       router.replace("/login");
       return;
@@ -201,7 +184,7 @@ export default function DashboardPage() {
     const role = (user?.role || "").trim().toLowerCase();
     if (role === "admin") { router.replace("/admin-panel"); return; }
     if (role === "coach") { router.replace("/coach-dashboard"); return; }
-  }, [router, user]);
+  }, [router, user, isLoggedIn, isHydrated]);
 
   const fetchProfile = useCallback(async () => {
     try {
@@ -284,7 +267,11 @@ export default function DashboardPage() {
       const res = await fetch("/api/progress/weight");
       const json = await res.json();
       setWeightHistory(json.success ? json.data || [] : []);
-    } catch { /* */ } finally { setIsWeightLoading(false); }
+    } catch {
+      showToast("error", "Couldn't load your weight history.");
+    } finally {
+      setIsWeightLoading(false);
+    }
   }, []);
 
   const fetchMacros = useCallback(async () => {
@@ -293,7 +280,11 @@ export default function DashboardPage() {
       const res = await fetch("/api/progress/macros");
       const json = await res.json();
       if (json.success && json.data) setMacros(json.data);
-    } catch { /* */ } finally { setIsMacrosLoading(false); }
+    } catch {
+      showToast("error", "Couldn't load your nutrition.");
+    } finally {
+      setIsMacrosLoading(false);
+    }
   }, []);
 
   const fetchStreak = useCallback(async () => {
@@ -302,7 +293,11 @@ export default function DashboardPage() {
       const res = await fetch("/api/progress/streak");
       const json = await res.json();
       if (json.success && json.data) setStreak(json.data);
-    } catch { /* */ } finally { setIsStreakLoading(false); }
+    } catch {
+      showToast("error", "Couldn't load your streak.");
+    } finally {
+      setIsStreakLoading(false);
+    }
   }, []);
 
   const fetchSubscription = useCallback(async () => {
@@ -310,8 +305,16 @@ export default function DashboardPage() {
     try {
       const res = await fetch("/api/subscription");
       const json = await res.json();
-      if (json.success && json.data) setSubscription(json.data);
-    } catch { /* */ } finally { setIsSubLoading(false); }
+      if (json.success && json.data) {
+        setSubscription(json.data);
+        const endTime = json.data.endDate ? new Date(json.data.endDate).getTime() : 0;
+        setSubDaysLeft(json.data.endDate ? Math.max(0, Math.ceil((endTime - Date.now()) / 86400000)) : 0);
+      }
+    } catch {
+      showToast("error", "Couldn't load your subscription.");
+    } finally {
+      setIsSubLoading(false);
+    }
   }, []);
 
   useEffect(() => {
@@ -338,8 +341,7 @@ export default function DashboardPage() {
         setProfileComplete(true);
         setProfileForm({ weight: data.weight?.toString() || weight, height: data.height?.toString() || height, age: data.age?.toString() || age, goal: data.goal || goal });
         const updated = { ...user!, goal: data.goal || goal };
-        setUser(updated);
-        localStorage.setItem("currentUser", JSON.stringify(updated));
+        setLocalUser(updated);
         fetchAttendance();
       } else {
         const err = await res.json().catch(() => null);
@@ -360,8 +362,7 @@ export default function DashboardPage() {
         showToast("success", "Metrics updated successfully.");
         setProfileForm({ weight: data.weight?.toString() || weight, height: data.height?.toString() || height, age: data.age?.toString() || age, goal: data.goal || goal });
         const updated = { ...user!, goal: data.goal || goal };
-        setUser(updated);
-        localStorage.setItem("currentUser", JSON.stringify(updated));
+        setLocalUser(updated);
       } else { showToast("error", "Failed to update metrics."); }
     } catch { showToast("error", "Network error."); } finally { setIsUpdatingMetrics(false); }
   };
@@ -426,11 +427,11 @@ export default function DashboardPage() {
       const res = await fetch("/api/subscription", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ planType: selectedPlan, hasPrivateCoach: payHasCoach, hasMealPlan: payHasMeal, amount: paymentTotal }),
+        body: JSON.stringify({ planType: selectedPlan, hasPrivateCoach: payHasCoach, hasMealPlan: payHasMeal }),
       });
       const json = await res.json();
       if (res.ok && json.success) {
-        showToast("success", "Payment successful! Membership activated.");
+        showToast("success", "Membership activated! (demo mode — no real payment was charged.)");
         setShowPaymentModal(false);
         fetchSubscription();
       } else {
@@ -516,6 +517,7 @@ export default function DashboardPage() {
   const confirmLogout = () => {
     setShowLogoutModal(false);
     localStorage.clear();
+    setLocalUser(null);
     document.cookie = "session=; path=/; max-age=0";
     router.replace("/login");
   };
@@ -529,23 +531,15 @@ export default function DashboardPage() {
 
   const currentWeight = parseFloat(profileForm.weight) || 0;
   const goalWeight = 75;
+  // Macro tracking is a paid perk (hasMealPlan). Client-side gate matching
+  // the server-side 403 on /api/progress/macros so non-subscribers see a
+  // locked/upgrade state instead of a form that just fails on save.
+  const macrosLocked = subscription.hasMealPlan !== true;
   const goalProgress = currentWeight > 0 ? Math.min(Math.round((1 - Math.abs(currentWeight - goalWeight) / goalWeight) * 100), 100) : 0;
   const donutData = [
     { name: "Progress", value: Math.max(goalProgress, 5) },
     { name: "Remaining", value: 100 - Math.max(goalProgress, 5) },
   ];
-
-  const subEndDate = subscription.endDate ? new Date(subscription.endDate) : null;
-  const [subDaysLeft, setSubDaysLeft] = useState(0);
-
-  useEffect(() => {
-    if (subscription.endDate) {
-      const end = new Date(subscription.endDate);
-      setSubDaysLeft(Math.max(0, Math.ceil((end.getTime() - Date.now()) / 86400000)));
-    } else {
-      setSubDaysLeft(0);
-    }
-  }, [subscription.endDate]);
 
   if (!user) return <SkeletonFullPage message="Loading Dashboard..." />;
 
@@ -766,11 +760,22 @@ export default function DashboardPage() {
                     <div className="premium-glow-card rounded-2xl p-4 lg:p-6 space-y-4">
                       <div className="flex justify-between items-center border-b border-[var(--dash-divider)] pb-3">
                         <h2 className="text-xs font-black text-white uppercase tracking-widest">DAILY NUTRITION</h2>
-                        <button onClick={() => { setMacrosForm({ calories: String(macros.calories || ""), protein: String(macros.protein || ""), carbs: String(macros.carbs || ""), fat: String(macros.fat || "") }); setShowMacrosModal(true); }} className="text-[9px] font-black text-red-400 bg-red-500/10 border border-red-500/20 px-3 py-1 rounded-lg hover:bg-red-500/20 transition-colors no-print">Update</button>
+                        {isSubLoading ? null : macrosLocked ? (
+                          <span className="text-[9px] font-black uppercase tracking-widest text-red-400/80 bg-red-500/10 border border-red-500/20 px-2 py-1 rounded-lg no-print">Locked · Meal Plan</span>
+                        ) : (
+                          <button onClick={() => { setMacrosForm({ calories: String(macros.calories || ""), protein: String(macros.protein || ""), carbs: String(macros.carbs || ""), fat: String(macros.fat || "") }); setShowMacrosModal(true); }} className="text-[9px] font-black text-red-400 bg-red-500/10 border border-red-500/20 px-3 py-1 rounded-lg hover:bg-red-500/20 transition-colors no-print">Update</button>
+                        )}
                       </div>
-                      {isMacrosLoading ? (
+                      {isMacrosLoading || isSubLoading ? (
                         <div className="flex justify-center gap-8 py-6">
                           {Array.from({ length: 4 }).map((_, i) => <div key={i} className="w-24 h-24 bg-zinc-800/30 animate-pulse rounded-full" />)}
+                        </div>
+                      ) : macrosLocked ? (
+                        <div className="flex flex-col items-center justify-center text-center py-6 gap-2">
+                          <Lock size={20} className="text-red-400/80" />
+                          <div className="text-xs font-black text-white uppercase tracking-widest">Meal Plan Tracking Locked</div>
+                          <p className="text-[10px] text-zinc-500 max-w-xs">Daily nutrition tracking requires an active subscription with the meal plan add-on.</p>
+                          <button onClick={() => setShowPaymentModal(true)} className="mt-1 px-4 py-2 bg-red-500 hover:bg-red-600 rounded-xl text-[10px] font-black uppercase tracking-wider text-white transition-colors no-print">Unlock with a Membership</button>
                         </div>
                       ) : (
                         <div className="flex flex-wrap justify-center gap-6 lg:gap-10">
@@ -1122,6 +1127,7 @@ export default function DashboardPage() {
                 <span className="text-sm font-black text-white">Total</span>
                 <span className="text-xl font-black text-white">${paymentTotal.toFixed(2)}</span>
               </div>
+              <p className="text-[9px] font-bold text-amber-400/80 uppercase tracking-widest mt-2">Demo mode — no real payment is processed yet.</p>
             </div>
 
             <div className="flex gap-3">

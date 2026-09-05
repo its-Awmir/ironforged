@@ -1,23 +1,37 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useSyncExternalStore } from "react";
 import { Moon, Sun } from "lucide-react";
 
-export default function ThemeToggle() {
-  const [theme, setTheme] = useState<"dark" | "light">("dark");
+const THEME_EVENT = "themechange";
 
-  useEffect(() => {
-    setTheme(document.documentElement.classList.contains("light") ? "light" : "dark");
-  }, []);
+type Theme = "dark" | "light";
+
+function getTheme(): Theme {
+  if (typeof document === "undefined") return "dark";
+  return document.documentElement.classList.contains("light") ? "light" : "dark";
+}
+
+function subscribe(listener: () => void): () => void {
+  window.addEventListener("storage", listener);
+  window.addEventListener(THEME_EVENT, listener);
+  return () => {
+    window.removeEventListener("storage", listener);
+    window.removeEventListener(THEME_EVENT, listener);
+  };
+}
+
+export default function ThemeToggle() {
+  const theme = useSyncExternalStore(subscribe, getTheme, () => "dark");
 
   const toggleTheme = () => {
-    const next: "dark" | "light" = theme === "dark" ? "light" : "dark";
-    setTheme(next);
+    const next: Theme = theme === "dark" ? "light" : "dark";
     document.documentElement.classList.toggle("dark", next === "dark");
     document.documentElement.classList.toggle("light", next === "light");
     try {
       localStorage.setItem("theme", next);
     } catch { /* storage unavailable */ }
+    window.dispatchEvent(new Event(THEME_EVENT));
   };
 
   return (

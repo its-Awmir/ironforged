@@ -4,7 +4,7 @@ import { setSessionCookie, hashPassword } from "@/lib/auth";
 
 export async function POST(request: Request) {
   try {
-    const { name, email, password, goal } = await request.json();
+    const { name, email, password, goal } = await request.json().catch(() => ({}));
 
     if (!name || !email || !password) {
       return NextResponse.json(

@@ -52,16 +52,8 @@ export default function CoachPanelPage() {
   const [activeSection, setActiveSection] = useState<string>("classes");
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  const [currentUser] = useState<User | null>(() => {
-    if (typeof window === "undefined") return null;
-    const raw = localStorage.getItem("currentUser");
-    if (!raw) return null;
-    try {
-      return JSON.parse(raw) as User;
-    } catch {
-      return null;
-    }
-  });
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [isMounted, setIsMounted] = useState(false);
   const [classes, setClasses] = useState<ClassItem[]>([]);
   const classesRef = useRef<ClassItem[]>([]);
 
@@ -80,6 +72,7 @@ export default function CoachPanelPage() {
   const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split("T")[0]);
   const [attendanceRecords, setAttendanceRecords] = useState<{ studentId: string; status: string }[]>([]);
   const [isSavingAttendance, setIsSavingAttendance] = useState(false);
+  const [attendanceLoadError, setAttendanceLoadError] = useState(false);
 
   // Workout state
   const [workoutClassId, setWorkoutClassId] = useState<string>("");
@@ -100,6 +93,20 @@ export default function CoachPanelPage() {
   const [showLogoutModal, setShowLogoutModal] = useState(false);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setIsMounted(true);
+    const raw = localStorage.getItem("currentUser");
+    if (raw) {
+      try {
+        setCurrentUser(JSON.parse(raw) as User);
+      } catch {
+        setCurrentUser(null);
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!isMounted) return;
     const isLoggedIn = localStorage.getItem("isLoggedIn") === "true";
     if (!isLoggedIn) {
       router.replace("/login");
@@ -110,7 +117,7 @@ export default function CoachPanelPage() {
     if (role !== "coach") {
       router.replace(role === "admin" ? "/admin-panel" : "/dashboard");
     }
-  }, [router, currentUser]);
+  }, [router, currentUser, isMounted]);
 
   const loadClasses = useCallback(async () => {
     setIsClassesLoading(true);
@@ -202,10 +209,14 @@ export default function CoachPanelPage() {
       });
 
       setAttendanceRecords(merged);
+      setAttendanceLoadError(false);
     } catch (err) {
       console.error("Error loading attendance", err);
-      const fallback = cls.students.map((s) => ({ studentId: s.id, status: "Present" }));
-      setAttendanceRecords(fallback);
+      // Do NOT default every student to "Present" — an unmarked roster must
+      // stay unmarked until the coach explicitly sets each student's status.
+      setAttendanceRecords(cls.students.map((s) => ({ studentId: s.id, status: "" })));
+      setAttendanceLoadError(true);
+      showToast("error", "Couldn't load attendance. Please retry.");
     } finally {
       setIsAttendanceLoading(false);
     }
@@ -221,6 +232,11 @@ export default function CoachPanelPage() {
 
   const saveAttendance = async () => {
     if (!selectedClassId || attendanceRecords.length === 0) return;
+    const marked = attendanceRecords.filter((r) => ["Present", "Absent", "Late"].includes(r.status));
+    if (marked.length === 0) {
+      showToast("warning", "Mark at least one student before saving.");
+      return;
+    }
     setIsSavingAttendance(true);
     try {
       const res = await fetch("/api/attendance", {
@@ -228,7 +244,7 @@ export default function CoachPanelPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           classId: selectedClassId,
-          records: attendanceRecords.map((r) => ({
+          records: marked.map((r) => ({
             studentId: r.studentId,
             status: r.status as "Present" | "Absent" | "Late",
           })),
@@ -488,7 +504,7 @@ export default function CoachPanelPage() {
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[var(--dash-divider)] pb-3">
                 <h2 className="text-xs font-black text-white uppercase tracking-widest">MARK ATTENDANCE</h2>
                 <div className="flex items-center gap-2">
-                  <select value={selectedClassId} onChange={(e) => { setSelectedClassId(e.target.value); setAttendanceRecords([]); }} className="select-dark bg-[var(--dash-field)] border border-[var(--dash-border)] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-transparent">
+                  <select value={selectedClassId} onChange={(e) => { setSelectedClassId(e.target.value); setAttendanceRecords([]); setAttendanceLoadError(false); }} className="select-dark bg-[var(--dash-field)] border border-[var(--dash-border)] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-transparent">
                     <option value="">Select Class</option>
                     {classes.map((c) => <option key={c.id} value={c.id}>{c.title}</option>)}
                   </select>
@@ -498,6 +514,15 @@ export default function CoachPanelPage() {
                   </button>
                 </div>
               </div>
+
+              {attendanceLoadError && (
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3">
+                  <div className="text-xs text-red-400 font-bold">Couldn&apos;t load attendance. Students are shown unmarked — set each status or retry before saving.</div>
+                  <button onClick={() => { if (selectedClassId) loadAttendanceAndMerge(selectedClassId, selectedDate); }} className="px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider bg-red-500 hover:bg-red-600 text-white transition-colors whitespace-nowrap">
+                    Retry
+                  </button>
+                </div>
+              )}
 
               {isClassesLoading ? (
                 <div className="py-8"><SkeletonTableRows rows={4} cols={2} /></div>

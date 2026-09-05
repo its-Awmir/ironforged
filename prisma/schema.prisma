@@ -30,6 +30,7 @@ enum AttendanceStatus {
 enum MessageType {
   PUBLIC
   PRIVATE
+  CONTACT
 }
 
 enum SubscriptionStatus {
@@ -80,11 +81,12 @@ model GymClass {
   className  String
   timeSlots  String
   capacity   Int    @default(20)
-  coachId    String @db.Uuid
+  coachId    String? @db.Uuid
+  isArchived Boolean @default(false)
   createdAt  DateTime @default(now())
 
   // Relations
-  coach          User               @relation(fields: [coachId], references: [id], onDelete: Cascade)
+  coach          User?              @relation(fields: [coachId], references: [id], onDelete: Restrict)
   enrollments    Enrollment[]
   attendances    Attendance[]
   groupWorkouts  GroupWorkout[]
@@ -160,14 +162,14 @@ model Message {
   id         String      @id @default(uuid()) @db.Uuid
   content    String
   type       MessageType @default(PUBLIC)
-  fromId     String      @db.Uuid
+  fromId     String?     @db.Uuid
   fromName   String
   targetId   String?     @db.Uuid
   targetName String?
   createdAt  DateTime    @default(now())
 
   // Relations
-  sender   User  @relation("SentMessages", fields: [fromId], references: [id], onDelete: Cascade)
+  sender   User? @relation("SentMessages", fields: [fromId], references: [id], onDelete: SetNull)
   receiver User? @relation("ReceivedMessages", fields: [targetId], references: [id], onDelete: SetNull)
 
   @@map("messages")
@@ -181,7 +183,7 @@ model WeightHistory {
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@index([userId, date])
+  @@unique([userId, date])
   @@map("weight_history")
 }
 

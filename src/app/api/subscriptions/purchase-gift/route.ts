@@ -1,22 +1,8 @@
 import { NextResponse } from "next/server";
 import { db, isDbReady } from "@/lib/db";
 import { getSessionUser, unauthorizedResponse } from "@/lib/auth";
-
-const PLAN_DAYS: Record<string, number> = {
-  DAILY: 1,
-  WEEKLY: 7,
-  MONTHLY: 30,
-  SIX_MONTH: 180,
-  YEARLY: 365,
-};
-
-const PLAN_PRICES: Record<string, number> = {
-  DAILY: 1.99,
-  WEEKLY: 9.99,
-  MONTHLY: 29.99,
-  SIX_MONTH: 149.99,
-  YEARLY: 249.99,
-};
+import { apiError } from "@/lib/apiError";
+import { PLAN_DAYS, PLAN_PRICES } from "@/lib/subscription";
 
 export async function POST(request: Request) {
   try {
@@ -25,6 +11,17 @@ export async function POST(request: Request) {
 
     if (!isDbReady()) {
       return NextResponse.json({ success: false, message: "Database unavailable." }, { status: 503 });
+    }
+
+    const paymentsEnabled = process.env.PAYMENTS_ENABLED === "true";
+    if (!paymentsEnabled) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Payments not yet configured — contact an admin.",
+        },
+        { status: 501 }
+      );
     }
 
     const body = await request.json().catch(() => ({}));
@@ -66,20 +63,8 @@ export async function POST(request: Request) {
       );
     }
 
-    // --- MOCK PAYMENT PROCESSING ---
-    // Structure ready for Stripe/ZarinPal integration:
-    // const paymentResult = await processPayment(totalAmount, buyer.id);
-    // if (!paymentResult.success) { return 402 response }
-    const paymentSuccessful = true;
-    const mockTransactionId = `GIFT-${Date.now()}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
-    // --- END MOCK PAYMENT ---
-
-    if (!paymentSuccessful) {
-      return NextResponse.json(
-        { success: false, message: "Payment failed. Please try again." },
-        { status: 402 }
-      );
-    }
+    // TODO: replace with a real payment gateway. When wired in, call the
+    // gateway here and return 402 on failure.
 
     const startDate = new Date();
     const endDate = new Date(startDate);
@@ -115,7 +100,6 @@ export async function POST(request: Request) {
       success: true,
       message: `Gift subscription activated successfully for ${recipient.name}!`,
       data: {
-        transactionId: mockTransactionId,
         subscriptionId: newSub.id,
         recipientName: recipient.name,
         recipientEmail: recipient.email,
@@ -129,11 +113,6 @@ export async function POST(request: Request) {
       },
     });
   } catch (error) {
-    console.error("[PURCHASE_GIFT_POST]", error);
-    if (error instanceof Error) {
-      if (error.message === "UNAUTHORIZED") return unauthorizedResponse();
-    }
-    const message = error instanceof Error ? error.message : "Failed to process gift purchase.";
-    return NextResponse.json({ success: false, message }, { status: 500 });
+    return apiError(error, "PURCHASE_GIFT_POST");
   }
 }

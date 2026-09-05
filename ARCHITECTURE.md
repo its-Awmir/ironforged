@@ -76,7 +76,7 @@ npx prisma generate  # Regenerate Prisma Client
 
 - Buyer enters recipient email → `/api/users/lookup` validates existence (case-insensitive)
 - Prevents self-gifting (`recipient.id === buyer.id` check)
-- Mock payment processor (structured for Stripe/ZarinPal swap)
+- Payment gateway abstraction: all purchase/gift endpoints are gated behind `PAYMENTS_ENABLED` and return `501` until a real processor (Stripe/ZarinPal) is wired in
 - Auto-expires recipient's existing active subscription before creating new one
 - `giftedBy` metadata stored as `"Buyer Name (buyer@email.com)"`
 - Plans: DAILY ($1.99), WEEKLY ($9.99), MONTHLY ($29.99), SIX_MONTH ($149.99), YEARLY ($249.99)
@@ -117,7 +117,7 @@ npx prisma generate  # Regenerate Prisma Client
 | `UserRole` | `ADMIN`, `COACH`, `MEMBER` |
 | `EquipmentStatus` | `OPERATIONAL`, `UNDER_REPAIR`, `OUT_OF_ORDER` |
 | `AttendanceStatus` | `PRESENT`, `ABSENT`, `LATE` |
-| `MessageType` | `PUBLIC`, `PRIVATE` |
+| `MessageType` | `PUBLIC`, `PRIVATE`, `CONTACT` |
 | `SubscriptionStatus` | `ACTIVE`, `EXPIRED` |
 | `PlanType` | `DAILY`, `WEEKLY`, `MONTHLY`, `SIX_MONTH`, `YEARLY` |
 
@@ -126,14 +126,14 @@ npx prisma generate  # Regenerate Prisma Client
 | Model | Table | Key Fields | Indexes |
 |---|---|---|---|
 | `User` | `users` | id (UUID), name, email (unique), password, role, goal, weight, height, age | — |
-| `GymClass` | `classes` | id, className, timeSlots, capacity, coachId | — |
+| `GymClass` | `classes` | id, className, timeSlots, capacity, coachId (nullable), isArchived | — |
 | `Enrollment` | `enrollments` | userId, classId | `@@unique([userId, classId])` |
 | `Equipment` | `equipment` | id, name, status, notes, date | — |
 | `Attendance` | `attendance` | id, classId, studentId, status, date, savedAt | — |
 | `GroupWorkout` | `group_workouts` | id, classId, date, workoutJson (JSON) | — |
 | `IndividualWorkout` | `individual_workouts` | id, studentId, date, workoutJson (JSON) | — |
 | `Message` | `messages` | id, content, type, fromId, fromName, targetId, targetName | — |
-| `WeightHistory` | `weight_history` | id, userId, weight (Float), date | `@@index([userId, date])` |
+| `WeightHistory` | `weight_history` | id, userId, weight (Float), date | `@@unique([userId, date])` |
 | `DailyMacros` | `daily_macros` | id, userId, calories, protein, carbs, fat, date | `@@unique([userId, date])` |
 | `UserStats` | `user_stats` | id, userId (unique), currentStreak, longestStreak, lastAttendance | — |
 | `Subscription` | `subscriptions` | id, userId, status, planType, hasPrivateCoach, hasMealPlan, startDate, endDate, amount, **giftedBy**, createdAt | `@@index([userId, status])` |
@@ -223,10 +223,10 @@ Example: "John Doe (john@example.com)"
 | Route | Methods | Purpose |
 |---|---|---|
 | `/api/workouts` | GET, POST | Individual + group workouts |
-| `/api/messages` | GET, POST | Public/private messaging |
+| `/api/messages` | GET, POST | Public/private messaging; `?type=contact` returns contact submissions (admin only) |
 | `/api/equipment` | GET, POST | Equipment inventory |
 | `/api/equipment/[id]` | GET, PUT, DELETE | Single equipment CRUD |
-| `/api/contact` | POST | Contact form submission |
+| `/api/contact` | POST | Contact form submission (stored as `MessageType.CONTACT`, excluded from all public/private message queries) |
 | `/api/logs` | GET | Application logs |
 
 ---
@@ -236,24 +236,25 @@ Example: "John Doe (john@example.com)"
 ### Session Flow
 
 1. User logs in via `/api/auth/login`
-2. Server calls `setSessionCookie(userId)` — sets httpOnly `session` cookie (7-day expiry)
+2. Server calls `setSessionCookie(userId, role)` — issues a signed token `userId.role.signature` (HMAC-SHA256 keyed on `SESSION_SECRET`) in an httpOnly `session` cookie (7-day expiry)
 3. All subsequent API calls include the cookie automatically
-4. `getSessionUser()` reads cookie → queries `db.user.findUnique()` → returns `SessionUser`
-5. Role-based access via `requireRole("admin")` / `requireRole("coach")`
+4. `getSessionUser()` verifies the HMAC signature, then queries `db.user.findUnique()` → returns `SessionUser`
+5. Role-based access via `requireRole("ADMIN")` / `requireRole("COACH")` / `requireRole("MEMBER")` (case-insensitive)
+6. `src/proxy.ts` (middleware) performs UI-gating only — redirects logged-out users to `/login?redirect=...` and enforces the `ROLE_MAP` page allowlist. Real authorization always happens at the API layer via `requireRole()`.
 
 ### Client-Side Auth
 
-- `localStorage` stores `isLoggedIn` and `currentUser` (JSON with id, name, email, role)
-- Dashboard reads from localStorage on mount, redirects based on role
-- Logout clears both localStorage and session cookie
+- `useLocalUser()` / `setLocalUser()` from `@/hooks/useLocalUser` wrap `localStorage` (key `user_ironforged`) storing id, name, email, role
+- The middleware redirect guards protected routes; component-level guards read `useLocalUser()`
+- Logout clears both `localStorage` and the session cookie
 
-### `resolveUserId()` Pattern (Progress Routes)
+### `requireAuth()` Pattern (Progress Routes)
 
-Progress routes (`weight`, `macros`, `streak`) use a belt-and-suspenders `resolveUserId()` that checks:
+Progress routes (`weight`, `macros`, `streak`) resolve identity exclusively from the session:
 
-1. `body.userId` (from POST payload)
-2. `cookies().get("session")` (Next.js cookies API)
-3. Raw `Cookie` header regex parse (fallback for middleware edge cases)
+1. `requireAuth()` → `getSessionUser()` parses and verifies the HMAC token
+2. DB lookup confirms the user exists
+3. Client-sent `body.userId` is never trusted for identity — the session is the source of truth
 
 ---
 
@@ -290,12 +291,16 @@ ironforged-modern/
 │   │   ├── Spinner.tsx        # SVG loading spinner (sm/md/lg)
 │   │   └── Toast.tsx          # Global showToast() + ToastContainer
 │   ├── hooks/
-│   │   └── useCyberpunkPDF.ts # Client-side PDF generation hook
+│   │   ├── useCyberpunkPDF.ts # Client-side PDF generation hook
+│   │   └── useLocalUser.ts    # localStorage user-state wrapper
 │   ├── lib/
-│   │   ├── auth.ts            # Session management, role guards
-│   │   └── db.ts              # Prisma client singleton + isDbReady()
-│   └── generated/
-│       └── prisma/            # Auto-generated Prisma Client
+│   │   ├── apiError.ts        # Standardized JSON error handler (apiError())
+│   │   ├── auth.ts            # Session signing/verification, role guards
+│   │   ├── db.ts              # Prisma client singleton + isDbReady()
+│   │   └── subscription.ts    # Shared plan pricing + feature gating (hasActiveFeature)
+│   ├── generated/
+│   │   └── prisma/            # Auto-generated Prisma Client
+│   └── proxy.ts               # Middleware: UI-gating + protected-route redirects
 ├── public/
 │   └── img/                   # Static assets (logo, etc.)
 ├── .env                       # Environment variables (DATABASE_URL)
@@ -313,7 +318,7 @@ ironforged-modern/
 
 ### 8.1 Next.js Static GET Caching Bypass
 
-**Problem:** Next.js production builds statically cache `GET` route handlers by default. After a user logs weight via `POST /api/progress/weight`, a subsequent `GET` to the same route returns a stale cached empty array `[]` instead of the freshly inserted record. The chart永远 shows "Log at least 2 weight entries."
+**Problem:** Next.js production builds statically cache `GET` route handlers by default. After a user logs weight via `POST /api/progress/weight`, a subsequent `GET` to the same route returns a stale cached empty array `[]` instead of the freshly inserted record. The chart always shows "Log at least 2 weight entries."
 
 **Fix:** Add at the top of every GET route that queries user-specific data:
 
@@ -477,14 +482,16 @@ export async function GET() {
 | Variable | Required | Description |
 |---|---|---|
 | `DATABASE_URL` | Yes | PostgreSQL connection string (Neon pooler) |
+| `SESSION_SECRET` | Yes | HMAC-SHA256 key for signing session tokens. The app refuses to start without it. |
+| `PAYMENTS_ENABLED` | No | Truthy to enable purchase/gift endpoints; otherwise they return `501` |
 
-No other environment variables are required. The session system uses httpOnly cookies — no JWT secrets needed.
+A `.env.example` (repo root) documents these variables; copy it to `.env` for local development.
 
 ---
 
 ## 11. Deployment Checklist
 
-1. Ensure `DATABASE_URL` is set in production environment
+1. Ensure `DATABASE_URL` and `SESSION_SECRET` are set in the production environment (startup throws if `SESSION_SECRET` is missing); set `PAYMENTS_ENABLED` only once a real payment gateway is wired
 2. Run `npx prisma db push` to sync schema changes
 3. Run `npx prisma generate` to regenerate client
 4. Run `npm run build` — verify 0 TypeScript errors
@@ -495,13 +502,13 @@ No other environment variables are required. The session system uses httpOnly co
 
 ## 12. Known Limitations & Future Work
 
-- **Payment Processing**: Mock payment processor in place. Structure is ready for Stripe/ZarinPal integration (see `purchase-gift/route.ts` comments).
+- **Payment Processing**: Purchase/gift endpoints are gated behind `PAYMENTS_ENABLED` and return `501` until Stripe/ZarinPal integration is wired. Shared plan pricing, durations, and feature gating live in `src/lib/subscription.ts`.
 - **PDF External Stylesheets**: `html2canvas` cannot process external CSS files reliably. All styling must be inline or in `<style>` tags within the cloned document.
 - **Weight One-Per-Day**: The weight upsert logic enforces one entry per date. Multiple same-day entries overwrite. This is by design for clean chart data.
-- **Session Cookie**: Uses raw UUID as session value (no JWT). Session is validated against DB on every request.
-- **No `.env.example`**: Environment documentation is in this file only.
+- **Session Cookie**: Signed `userId.role.signature` token (HMAC-SHA256 over `SESSION_SECRET`), its signature recalculated and verified on every request.
+- **`.env.example`**: Present at repo root documenting `DATABASE_URL`, `SESSION_SECRET`, and `PAYMENTS_ENABLED`.
 
 ---
 
-*Last updated: July 2026*
+*Last updated: September 2026*
 *Maintained by: IRONFORGED Engineering Team*

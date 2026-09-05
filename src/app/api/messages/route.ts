@@ -21,6 +21,24 @@ export async function GET(request: Request) {
       return NextResponse.json({ success: true, data: messages });
     }
 
+    if (type === "contact") {
+      // Contact-form submissions are admin-only; they are never shown in the
+      // public/private message feeds. (No admin inbox UI exists yet — the
+      // dedicated admin view is a future improvement.)
+      if (role !== "admin") {
+        return NextResponse.json(
+          { success: false, message: "Forbidden. Contact messages are admin-only." },
+          { status: 403 }
+        );
+      }
+      const messages = await db.message.findMany({
+        where: { type: "CONTACT" },
+        orderBy: { createdAt: "desc" },
+        take: 100,
+      });
+      return NextResponse.json({ success: true, data: messages });
+    }
+
     if (type === "private" && targetId) {
       if (role === "member") {
         if (targetId !== user.id) {
@@ -60,6 +78,9 @@ export async function GET(request: Request) {
     }
 
     const messages = await db.message.findMany({
+      // Coaches/admins see the general board + their messages, but never the
+      // admin-only CONTACT submissions.
+      where: { type: { not: "CONTACT" } },
       orderBy: { createdAt: "desc" },
       take: 100,
     });
@@ -78,13 +99,26 @@ export async function POST(request: Request) {
     const user = await getSessionUser();
     if (!user) return unauthorizedResponse();
 
-    const { content, type, targetId, targetName } = await request.json();
+    const { content, type, targetId, targetName } = await request.json().catch(() => ({}));
 
     if (!content) {
       return NextResponse.json(
         { success: false, message: "content is required." },
         { status: 400 }
       );
+    }
+
+    if (targetId) {
+      const target = await db.user.findUnique({
+        where: { id: String(targetId) },
+        select: { id: true },
+      });
+      if (!target) {
+        return NextResponse.json(
+          { success: false, message: "Recipient not found." },
+          { status: 404 }
+        );
+      }
     }
 
     const message = await db.message.create({

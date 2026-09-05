@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { db, isDbReady } from "@/lib/db";
 import { getSessionUser, unauthorizedResponse } from "@/lib/auth";
+import { apiError } from "@/lib/apiError";
 
 export async function GET() {
   try {
@@ -78,8 +79,6 @@ export async function GET() {
       data: { currentStreak, longestStreak, lastAttendance: lastDate?.toISOString() },
     });
   } catch (error) {
-    console.error("[STREAK_GET]", error);
-    const msg = error instanceof Error ? error.message : "Server error.";
-    return NextResponse.json({ success: false, message: msg }, { status: 500 });
+    return apiError(error, "STREAK_GET");
   }
 }

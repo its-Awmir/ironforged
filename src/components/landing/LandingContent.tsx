@@ -7,13 +7,7 @@ import Image from "next/image";
 import { ToastContainer, showToast } from "@/components/Toast";
 import ConfirmModal from "@/components/ConfirmModal";
 import ThemeToggle from "@/components/ThemeToggle";
-
-interface UserData {
-  id: string;
-  name: string;
-  email: string;
-  role: string;
-}
+import { useLocalUser, setLocalUser } from "@/hooks/useLocalUser";
 
 export default function HomePage() {
   const router = useRouter();
@@ -22,9 +16,9 @@ export default function HomePage() {
   const [isMenuOpen, setIsMenuOpen] = useState<boolean>(false);
   const [scrollWidth, setScrollWidth] = useState<string>("0%");
 
-  const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
-  const [userFirstName, setUserFirstName] = useState<string>("");
-  const [userRole] = useState<string>("Member");
+  const { user, isLoggedIn } = useLocalUser();
+  const userFirstName = (user?.name || "Athlete").split(" ")[0].toUpperCase();
+  const userRole = user?.role || "Member";
 
   const [contactName, setContactName] = useState<string>("");
   const [contactEmail, setContactEmail] = useState<string>("");
@@ -37,18 +31,6 @@ export default function HomePage() {
 
   // Logout confirm modal
   const [showLogoutModal, setShowLogoutModal] = useState(false);
-
-  useEffect(() => {
-    const loggedIn = localStorage.getItem("isLoggedIn") === "true";
-    const userRaw = localStorage.getItem("currentUser");
-    if (loggedIn && userRaw) {
-      try {
-        const userData: UserData = JSON.parse(userRaw);
-        setIsLoggedIn(true);
-        setUserFirstName((userData.name || "Athlete").split(" ")[0].toUpperCase());
-      } catch { /* ignore malformed profile */ }
-    }
-  }, []);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -106,9 +88,8 @@ export default function HomePage() {
   const confirmLogout = () => {
     setShowLogoutModal(false);
     localStorage.clear();
+    setLocalUser(null);
     document.cookie = "session=; path=/; max-age=0";
-    setIsLoggedIn(false);
-    setUserFirstName("");
     router.refresh();
   };
 

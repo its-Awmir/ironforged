@@ -1,14 +1,8 @@
 import { NextResponse } from "next/server";
 import { db, isDbReady } from "@/lib/db";
-import { requireRole, forbiddenResponse, unauthorizedResponse } from "@/lib/auth";
-
-const PLAN_DAYS: Record<string, number> = {
-  DAILY: 1,
-  WEEKLY: 7,
-  MONTHLY: 30,
-  SIX_MONTH: 180,
-  YEARLY: 365,
-};
+import { requireRole, unauthorizedResponse } from "@/lib/auth";
+import { PLAN_DAYS, expireLapsedSubscriptions } from "@/lib/subscription";
+import { apiError } from "@/lib/apiError";
 
 export async function GET() {
   try {
@@ -18,6 +12,8 @@ export async function GET() {
     if (!isDbReady()) {
       return NextResponse.json({ success: true, data: [] });
     }
+
+    await expireLapsedSubscriptions();
 
     const allUsers = await db.user.findMany({
       select: {
@@ -54,11 +50,7 @@ export async function GET() {
 
     return NextResponse.json({ success: true, data });
   } catch (error) {
-    console.error("[ADMIN_SUBSCRIPTIONS_GET]", error);
-    if (error instanceof Error && (error.message === "UNAUTHORIZED" || error.message === "FORBIDDEN")) {
-      return error.message === "UNAUTHORIZED" ? unauthorizedResponse() : forbiddenResponse();
-    }
-    return NextResponse.json({ success: false, message: "Server error." }, { status: 500 });
+    return apiError(error, "ADMIN_SUBSCRIPTIONS_GET");
   }
 }
 
@@ -71,7 +63,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, message: "Database unavailable." }, { status: 503 });
     }
 
-    const body = await request.json();
+    await expireLapsedSubscriptions();
+
+    const body = await request.json().catch(() => ({}));
     const { userId, planType, hasPrivateCoach, hasMealPlan, customDays, endDate: customEndDate } = body;
 
     if (!userId) {
@@ -156,11 +150,6 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ success: true, data: newSub });
   } catch (error) {
-    console.error("[ADMIN_SUBSCRIPTIONS_POST]", error);
-    if (error instanceof Error && (error.message === "UNAUTHORIZED" || error.message === "FORBIDDEN")) {
-      return error.message === "UNAUTHORIZED" ? unauthorizedResponse() : forbiddenResponse();
-    }
-    const message = error instanceof Error ? error.message : "Failed to update subscription.";
-    return NextResponse.json({ success: false, message }, { status: 500 });
+    return apiError(error, "ADMIN_SUBSCRIPTIONS_POST");
   }
 }

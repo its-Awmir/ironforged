@@ -17,19 +17,49 @@ export async function GET(request: Request) {
     if (role === "member") {
       where.studentId = user.id;
     } else if (role === "coach") {
-      const coachClasses = await db.gymClass.findMany({
-        where: { coachId: user.id },
-        select: { id: true },
-      });
-      where.classId = { in: coachClasses.map((c) => c.id) };
-    }
+      // A coach may only view attendance for classes they own. A requested
+      // classId must be verified — it never overrides the ownership scope.
+      if (classId) {
+        const classRecord = await db.gymClass.findUnique({
+          where: { id: classId },
+          select: { id: true, coachId: true },
+        });
 
-    if (classId && role !== "member") {
-      where.classId = classId;
+        if (!classRecord) {
+          return NextResponse.json(
+            { success: false, message: "Class not found." },
+            { status: 404 }
+          );
+        }
+
+        if (classRecord.coachId !== user.id) {
+          return NextResponse.json(
+            { success: false, message: "You can only view attendance for your own classes." },
+            { status: 403 }
+          );
+        }
+
+        where.classId = classId;
+      } else {
+        const coachClasses = await db.gymClass.findMany({
+          where: { coachId: user.id },
+          select: { id: true },
+        });
+        where.classId = { in: coachClasses.map((c) => c.id) };
+      }
+    } else {
+      // Admin may query attendance for any class.
+      if (classId) where.classId = classId;
     }
 
     if (date) {
       const start = new Date(date);
+      if (isNaN(start.getTime())) {
+        return NextResponse.json(
+          { success: false, message: "Invalid date. Use YYYY-MM-DD." },
+          { status: 400 }
+        );
+      }
       start.setHours(0, 0, 0, 0);
       const end = new Date(date);
       end.setHours(23, 59, 59, 999);
@@ -68,7 +98,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const { classId, records } = (await request.json()) as {
+    const { classId, records } = (await request.json().catch(() => ({}))) as {
       classId: string;
       records: { studentId: string; status: "Present" | "Absent" | "Late" }[];
     };
@@ -80,17 +110,23 @@ export async function POST(request: Request) {
       );
     }
 
-    if (role === "coach") {
-      const classRecord = await db.gymClass.findUnique({
-        where: { id: classId },
-        select: { coachId: true },
-      });
-      if (!classRecord || classRecord.coachId !== user.id) {
-        return NextResponse.json(
-          { success: false, message: "You can only mark attendance for your own classes." },
-          { status: 403 }
-        );
-      }
+    const classRecord = await db.gymClass.findUnique({
+      where: { id: classId },
+      select: { id: true, coachId: true },
+    });
+
+    if (!classRecord) {
+      return NextResponse.json(
+        { success: false, message: "Class not found." },
+        { status: 404 }
+      );
+    }
+
+    if (role === "coach" && classRecord.coachId !== user.id) {
+      return NextResponse.json(
+        { success: false, message: "You can only mark attendance for your own classes." },
+        { status: 403 }
+      );
     }
 
     const statusMap: Record<string, "PRESENT" | "ABSENT" | "LATE"> = {

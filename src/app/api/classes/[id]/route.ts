@@ -16,7 +16,15 @@ export async function PUT(request: Request, { params }: RouteContext) {
   try {
     await requireRole("COACH", "ADMIN");
     const { id } = await params;
-    const { title, coach, coachId, time, capacity } = await request.json();
+    const { title, coach, coachId, time, capacity } = await request.json().catch(() => ({}));
+
+    const existing = await db.gymClass.findUnique({ where: { id } });
+    if (!existing) {
+      return NextResponse.json(
+        { success: false, message: "Class not found." },
+        { status: 404 }
+      );
+    }
 
     let resolvedCoachId = coachId;
 
@@ -54,14 +62,24 @@ export async function PUT(request: Request, { params }: RouteContext) {
   }
 }
 
+// Classes are never hard-deleted so enrollment/attendance history is
+// preserved. DELETE archives the class; it disappears from list views.
 export async function DELETE(request: Request, { params }: RouteContext) {
   try {
     await requireRole("COACH", "ADMIN");
     const { id } = await params;
 
-    await db.gymClass.delete({ where: { id } });
+    const existing = await db.gymClass.findUnique({ where: { id } });
+    if (!existing) {
+      return NextResponse.json(
+        { success: false, message: "Class not found." },
+        { status: 404 }
+      );
+    }
 
-    return NextResponse.json({ success: true, message: "Class deleted." });
+    await db.gymClass.update({ where: { id }, data: { isArchived: true } });
+
+    return NextResponse.json({ success: true, message: "Class archived." });
   } catch (error) {
     const authError = handleAuthError(error);
     if (authError) return authError;

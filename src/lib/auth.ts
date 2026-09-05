@@ -4,7 +4,15 @@ import { db } from "@/lib/db";
 
 const SESSION_COOKIE = "session";
 const BCRYPT_ROUNDS = 10;
-const HMAC_SECRET = process.env.SESSION_SECRET || "meridian-dev-fallback-secret-change-in-production";
+
+// No hardcoded fallback secret. If SESSION_SECRET is missing, fail fast at
+// startup instead of signing session tokens with a public, forgeable string.
+const HMAC_SECRET = process.env.SESSION_SECRET;
+if (!HMAC_SECRET) {
+  throw new Error(
+    "SESSION_SECRET is not set. Refusing to start: the session signing secret must be configured in the environment."
+  );
+}
 
 export interface SessionUser {
   id: string;

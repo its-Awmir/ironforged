@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getSessionUser, unauthorizedResponse } from "@/lib/auth";
+import { apiError } from "@/lib/apiError";
+import type { Prisma } from "@/generated/prisma/client";
 
 export async function GET() {
   try {
@@ -30,11 +32,7 @@ export async function GET() {
       data: { ...profile, isProfileComplete },
     });
   } catch (error) {
-    console.error("[USER_PROFILE_GET_ERROR]", error);
-    return NextResponse.json(
-      { success: false, message: "Internal server error." },
-      { status: 500 }
-    );
+    return apiError(error, "USER_PROFILE_GET");
   }
 }
 
@@ -43,8 +41,20 @@ export async function PUT(request: Request) {
     const user = await getSessionUser();
     if (!user) return unauthorizedResponse();
 
-    const body = await request.json();
+    const body = await request.json().catch(() => ({}));
     const { weight, height, age, goal } = body;
+
+    if (
+      weight === undefined &&
+      height === undefined &&
+      age === undefined &&
+      goal === undefined
+    ) {
+      return NextResponse.json(
+        { success: false, message: "At least one profile field is required." },
+        { status: 400 }
+      );
+    }
 
     const rawWeight = weight != null ? parseFloat(String(weight)) : null;
     let rawHeight = height != null ? parseFloat(String(height)) : null;
@@ -75,14 +85,18 @@ export async function PUT(request: Request) {
       );
     }
 
+    // Only the fields actually sent are updated, so a partial update can
+    // never wipe the profile fields the client did not include.
+    const data: Prisma.UserUpdateInput = {
+      ...(weight !== undefined && { weight: rawWeight }),
+      ...(height !== undefined && { height: rawHeight }),
+      ...(age !== undefined && { age: rawAge }),
+      ...(goal !== undefined && goal !== null && { goal: String(goal) }),
+    };
+
     const updated = await db.user.update({
       where: { id: user.id },
-      data: {
-        weight: rawWeight,
-        height: rawHeight,
-        age: rawAge,
-        ...(goal && { goal: String(goal) }),
-      },
+      data,
       select: {
         id: true,
         name: true,
@@ -96,13 +110,7 @@ export async function PUT(request: Request) {
     });
 
     return NextResponse.json({ success: true, data: updated });
-  } catch (error: unknown) {
-    const message =
-      error instanceof Error ? error.message : "Failed to update metrics due to a server error.";
-    console.error("Prisma Onboarding Error:", error);
-    return NextResponse.json(
-      { success: false, message },
-      { status: 500 }
-    );
+  } catch (error) {
+    return apiError(error, "USER_PROFILE_PUT");
   }
 }

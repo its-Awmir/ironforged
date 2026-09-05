@@ -1,19 +1,14 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getSessionUser, unauthorizedResponse } from "@/lib/auth";
-
-const PLAN_DAYS: Record<string, number> = {
-  DAILY: 1,
-  WEEKLY: 7,
-  MONTHLY: 30,
-  SIX_MONTH: 180,
-  YEARLY: 365,
-};
+import { PLAN_DAYS, computeSubscriptionAmount, expireLapsedSubscriptions } from "@/lib/subscription";
+import { apiError } from "@/lib/apiError";
 
 export async function GET() {
   try {
     const user = await getSessionUser();
     if (!user) return unauthorizedResponse();
+    await expireLapsedSubscriptions();
 
     const subscription = await db.subscription.findFirst({
       where: { userId: user.id, status: "ACTIVE" },
@@ -30,8 +25,7 @@ export async function GET() {
       data: subscription || expired || { status: "EXPIRED", endDate: null, amount: 0, planType: "MONTHLY", hasPrivateCoach: false, hasMealPlan: false },
     });
   } catch (error) {
-    console.error("[SUBSCRIPTION_GET]", error);
-    return NextResponse.json({ success: false, message: "Server error." }, { status: 500 });
+    return apiError(error, "SUBSCRIPTION_GET");
   }
 }
 
@@ -40,12 +34,25 @@ export async function POST(request: Request) {
     const user = await getSessionUser();
     if (!user) return unauthorizedResponse();
 
-    const body = await request.json();
-    const { planType, hasPrivateCoach, hasMealPlan, amount } = body;
+    const paymentsEnabled = process.env.PAYMENTS_ENABLED === "true";
+    if (!paymentsEnabled) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Payments not yet configured — contact an admin.",
+        },
+        { status: 501 }
+      );
+    }
+
+    const body = await request.json().catch(() => ({}));
+    const { planType, hasPrivateCoach, hasMealPlan } = body;
 
     const validPlanType = PLAN_DAYS[planType] ? planType : "MONTHLY";
     const days = PLAN_DAYS[validPlanType];
-    const finalAmount = typeof amount === "number" && amount > 0 ? amount : 0;
+    // Amount is derived server-side from the fixed price table; the client
+    // never supplies a price.
+    const finalAmount = computeSubscriptionAmount(validPlanType, Boolean(hasPrivateCoach), Boolean(hasMealPlan));
 
     const activeSub = await db.subscription.findFirst({
       where: { userId: user.id, status: "ACTIVE" },
@@ -70,6 +77,8 @@ export async function POST(request: Request) {
       });
     }
 
+    // TODO: replace with a real payment gateway before production. This is a
+    // DEMO flow: no money is charged, and the amount above is informational.
     const newSub = await db.subscription.create({
       data: {
         userId: user.id,
@@ -83,10 +92,13 @@ export async function POST(request: Request) {
       },
     });
 
-    return NextResponse.json({ success: true, data: newSub });
+    return NextResponse.json({
+      success: true,
+      message: "Demo mode: no real payment was charged. A payment gateway must be wired in before production.",
+      demoMode: true,
+      data: newSub,
+    });
   } catch (error) {
-    console.error("[SUBSCRIPTION_POST]", error);
-    const message = error instanceof Error ? error.message : "Payment failed.";
-    return NextResponse.json({ success: false, message }, { status: 500 });
+    return apiError(error, "SUBSCRIPTION_POST");
   }
 }

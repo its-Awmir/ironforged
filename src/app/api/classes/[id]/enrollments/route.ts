@@ -16,7 +16,7 @@ export async function POST(request: Request, { params }: RouteContext) {
   try {
     await requireRole("COACH", "ADMIN");
     const { id: classId } = await params;
-    const { email } = await request.json();
+    const { email } = await request.json().catch(() => ({}));
 
     if (!email) {
       return NextResponse.json(
@@ -36,19 +36,59 @@ export async function POST(request: Request, { params }: RouteContext) {
       );
     }
 
-    const existing = await db.enrollment.findUnique({
-      where: { userId_classId: { userId: user.id, classId } },
-    });
+    const gymClass = await db.gymClass.findUnique({ where: { id: classId } });
 
-    if (existing) {
+    if (!gymClass) {
       return NextResponse.json(
-        { success: false, message: "User is already enrolled in this class." },
-        { status: 409 }
+        { success: false, message: "Class not found." },
+        { status: 404 }
       );
     }
 
-    const enrollment = await db.enrollment.create({
-      data: { userId: user.id, classId },
+    // Enforce capacity INSIDE a transaction so two concurrent enrollments
+    // cannot both pass the count check and overfill the class.
+    try {
+      await db.$transaction(async (tx) => {
+        const existing = await tx.enrollment.findUnique({
+          where: { userId_classId: { userId: user.id, classId } },
+        });
+
+        if (existing) {
+          throw new Error("ALREADY_ENROLLED");
+        }
+
+        const enrolledCount = await tx.enrollment.count({
+          where: { classId },
+        });
+
+        if (enrolledCount >= gymClass.capacity) {
+          throw new Error("CLASS_FULL");
+        }
+
+        await tx.enrollment.create({
+          data: { userId: user.id, classId },
+        });
+      });
+    } catch (innerError) {
+      if (innerError instanceof Error) {
+        if (innerError.message === "ALREADY_ENROLLED") {
+          return NextResponse.json(
+            { success: false, message: "User is already enrolled in this class." },
+            { status: 409 }
+          );
+        }
+        if (innerError.message === "CLASS_FULL") {
+          return NextResponse.json(
+            { success: false, message: "Class is full." },
+            { status: 409 }
+          );
+        }
+      }
+      throw innerError;
+    }
+
+    const enrollment = await db.enrollment.findUnique({
+      where: { userId_classId: { userId: user.id, classId } },
     });
 
     return NextResponse.json(
@@ -70,7 +110,7 @@ export async function DELETE(request: Request, { params }: RouteContext) {
   try {
     await requireRole("COACH", "ADMIN");
     const { id: classId } = await params;
-    const { studentId } = await request.json();
+    const { studentId } = await request.json().catch(() => ({}));
 
     if (!studentId) {
       return NextResponse.json(

@@ -1,14 +1,8 @@
 import { NextResponse } from "next/server";
 import { db, isDbReady } from "@/lib/db";
-import { requireRole, unauthorizedResponse, forbiddenResponse } from "@/lib/auth";
-
-const PLAN_DAYS: Record<string, number> = {
-  DAILY: 1,
-  WEEKLY: 7,
-  MONTHLY: 30,
-  SIX_MONTH: 180,
-  YEARLY: 365,
-};
+import { requireRole, unauthorizedResponse } from "@/lib/auth";
+import { PLAN_DAYS, expireLapsedSubscriptions } from "@/lib/subscription";
+import { apiError } from "@/lib/apiError";
 
 export async function POST(request: Request) {
   try {
@@ -18,6 +12,8 @@ export async function POST(request: Request) {
     if (!isDbReady()) {
       return NextResponse.json({ success: false, message: "Database unavailable." }, { status: 503 });
     }
+
+    await expireLapsedSubscriptions();
 
     const body = await request.json().catch(() => ({}));
     const { targetUserId, planType, startDate, hasPrivateCoach, hasMealPlan } = body;
@@ -86,12 +82,6 @@ export async function POST(request: Request) {
       },
     });
   } catch (error) {
-    console.error("[GRANT_SUBSCRIPTION_POST]", error);
-    if (error instanceof Error) {
-      if (error.message === "UNAUTHORIZED") return unauthorizedResponse();
-      if (error.message === "FORBIDDEN") return forbiddenResponse();
-    }
-    const message = error instanceof Error ? error.message : "Failed to grant subscription.";
-    return NextResponse.json({ success: false, message }, { status: 500 });
+    return apiError(error, "GRANT_SUBSCRIPTION_POST");
   }
 }

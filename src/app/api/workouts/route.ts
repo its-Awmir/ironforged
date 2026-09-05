@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { getSessionUser, unauthorizedResponse } from "@/lib/auth";
+import { hasActiveFeature } from "@/lib/subscription";
 
 export async function GET(request: Request) {
   try {
@@ -83,10 +84,16 @@ export async function GET(request: Request) {
       orderBy: { date: "desc" },
     });
 
-    const individualWorkouts = await db.individualWorkout.findMany({
-      where: { studentId: user.id },
-      orderBy: { date: "desc" },
-    });
+    // Individual coaching is a paid perk (hasPrivateCoach). Members without it
+    // never see coach-assigned workouts — enforced server-side, not just in the
+    // UI.
+    const privateCoachEnabled = await hasActiveFeature(user.id, "hasPrivateCoach");
+    const individualWorkouts = privateCoachEnabled
+      ? await db.individualWorkout.findMany({
+          where: { studentId: user.id },
+          orderBy: { date: "desc" },
+        })
+      : [];
 
     return NextResponse.json({ success: true, data: { groupWorkouts, individualWorkouts } });
   } catch (error) {
@@ -111,7 +118,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const body = await request.json();
+    const body = await request.json().catch(() => ({}));
     const { type, classId, studentId, date, workoutJson } = body;
 
     if (!type || !workoutJson) {
@@ -166,6 +173,20 @@ export async function POST(request: Request) {
             { status: 403 }
           );
         }
+      }
+
+      // Private coaching is a paid perk (hasPrivateCoach). A student without an
+      // active subscription that includes the perk must not receive
+      // coach-assigned workouts — enforced server-side.
+      const privateCoachEnabled = await hasActiveFeature(studentId, "hasPrivateCoach");
+      if (!privateCoachEnabled) {
+        return NextResponse.json(
+          {
+            success: false,
+            message: "Student does not have an active Private Coach subscription.",
+          },
+          { status: 403 }
+        );
       }
 
       const workout = await db.individualWorkout.create({

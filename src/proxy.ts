@@ -1,7 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
 
 const SESSION_COOKIE = "session";
-const HMAC_SECRET = process.env.SESSION_SECRET || "meridian-dev-fallback-secret-change-in-production";
+
+// No hardcoded fallback secret. If SESSION_SECRET is missing, fail fast at
+// startup instead of silently signing/verifying tokens with a public string
+// that makes session tokens forgeable. This proxy is UI-gating only — all
+// real authorization happens at the API layer via requireRole() — but the
+// token signature is still security-relevant, so this is intentional, not
+// forgotten.
+const HMAC_SECRET = process.env.SESSION_SECRET;
+if (!HMAC_SECRET) {
+  throw new Error(
+    "SESSION_SECRET is not set. Refusing to start: the session signing secret must be configured in the environment."
+  );
+}
 
 const ROLE_MAP: Record<string, string[]> = {
   "/admin-panel": ["ADMIN"],

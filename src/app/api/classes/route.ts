@@ -11,7 +11,7 @@ export async function GET() {
 
     if (role === "member") {
       const enrollments = await db.enrollment.findMany({
-        where: { userId: user.id },
+        where: { userId: user.id, gymClass: { isArchived: false } },
         include: {
           gymClass: {
             include: {
@@ -29,7 +29,7 @@ export async function GET() {
       const mapped = enrollments.map((e) => ({
         id: e.gymClass.id,
         title: e.gymClass.className,
-        coach: e.gymClass.coach.name,
+        coach: e.gymClass.coach?.name ?? "Unassigned",
         coachId: e.gymClass.coachId,
         time: e.gymClass.timeSlots,
         capacity: e.gymClass.capacity,
@@ -45,6 +45,7 @@ export async function GET() {
     }
 
     const classes = await db.gymClass.findMany({
+      where: { isArchived: false },
       include: {
         coach: { select: { id: true, name: true, email: true } },
         enrollments: {
@@ -64,10 +65,11 @@ export async function GET() {
     const mapped = filtered.map((c) => ({
       id: c.id,
       title: c.className,
-      coach: c.coach.name,
+      coach: c.coach?.name ?? "Unassigned",
       coachId: c.coachId,
       time: c.timeSlots,
       capacity: c.capacity,
+      isArchived: c.isArchived,
       enrolled: c.enrollments.length,
       students: c.enrollments.map((e) => ({
         id: e.user.id,
@@ -99,7 +101,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const { title, coach, coachId, time, capacity } = await request.json();
+    const { title, coach, coachId, time, capacity } = await request.json().catch(() => ({}));
 
     if (!title) {
       return NextResponse.json(

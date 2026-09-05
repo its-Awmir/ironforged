@@ -24,7 +24,15 @@ export async function PUT(request: Request, { params }: RouteContext) {
   try {
     await requireRole("ADMIN");
     const { id } = await params;
-    const { name, status, notes } = await request.json();
+    const { name, status, notes } = await request.json().catch(() => ({}));
+
+    const existing = await db.equipment.findUnique({ where: { id }, select: { id: true } });
+    if (!existing) {
+      return NextResponse.json(
+        { success: false, message: "Equipment not found." },
+        { status: 404 }
+      );
+    }
 
     const equipment = await db.equipment.update({
       where: { id },
@@ -51,6 +59,14 @@ export async function DELETE(request: Request, { params }: RouteContext) {
   try {
     await requireRole("ADMIN");
     const { id } = await params;
+
+    const existing = await db.equipment.findUnique({ where: { id }, select: { id: true } });
+    if (!existing) {
+      return NextResponse.json(
+        { success: false, message: "Equipment not found." },
+        { status: 404 }
+      );
+    }
 
     await db.equipment.delete({ where: { id } });
 

@@ -43,7 +43,7 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     await requireRole("ADMIN");
-    const { name, status, lastCheck, notes } = await request.json();
+    const { name, status, lastCheck, notes } = await request.json().catch(() => ({}));
 
     if (!name) {
       return NextResponse.json(
